@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary-blue: #0A192F;
+  --color-accent-cyan: #64FFDA;
+  --color-glass-white: rgba(255, 255, 255, 0.08);
+  --color-glass-border: rgba(255, 255, 255, 0.12);
+  --color-text-main: #E6F1FF;
+  --color-text-dim: #8892B0;
+  --color-danger: #FF4D4D;
+  --color-success: #00E676;
+}
+
+@layer base {
+  body {
+    @apply bg-primary-blue text-text-main min-h-screen antialiased selection:bg-accent-cyan selection:text-primary-blue;
+    background-image: 
+      radial-gradient(circle at 0% 0%, #112240 0%, transparent 50%),
+      radial-gradient(circle at 100% 100%, #020c1b 0%, transparent 50%);
+    background-attachment: fixed;
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+  }
+}
+
+@layer utilities {
+  .glass-panel {
+    @apply bg-glass-white backdrop-blur-[12px] border border-glass-border shadow-[0_8px_32px_0_rgba(0,0,0,0.3)];
+    border-radius: 16px;
+  }
+  
+  .glass-input {
+    @apply bg-black/30 border border-glass-border focus:border-accent-cyan focus:ring-1 focus:ring-accent-cyan text-white placeholder:text-text-dim backdrop-blur-sm transition-all;
+  }
+  
+  .glass-button {
+    @apply bg-accent-cyan hover:bg-accent-cyan/90 text-primary-blue font-bold backdrop-blur-sm border-none shadow-[0_4px_12px_0_rgba(100,255,218,0.3)] transition-all active:scale-95;
+  }
+}
+
+@keyframes marquee {
+  0% { transform: translateX(100vw); }
+  100% { transform: translateX(-100%); }
+}
+
+.animate-marquee {
+  display: inline-block;
+  white-space: nowrap;
+  animation: marquee 25s linear infinite;
+}
