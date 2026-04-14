@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { LogOut, Settings, ShieldAlert, Activity, Save, Search, Filter, CheckCircle, XCircle, Users, Droplet, Power } from 'lucide-react';
+import { LogOut, Settings, ShieldAlert, Activity, Save, Search, Filter, CheckCircle, XCircle, Users, Droplet, Power, Trash2, Edit, Plus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/src/components/ui/Card';
 import { Input } from '@/src/components/ui/Input';
 import { Button } from '@/src/components/ui/Button';
@@ -13,7 +13,7 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const [admin, setAdmin] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'settings' | 'transactions' | 'approvals' | 'pumps'>('settings');
+  const [activeTab, setActiveTab] = useState<'settings' | 'transactions' | 'approvals' | 'pumps' | 'users'>('settings');
   
   const [settings, setSettings] = useState<GlobalSettings>({ quotas: {}, marquee_text: '' });
   const [isSaving, setIsSaving] = useState(false);
@@ -29,6 +29,21 @@ export default function AdminDashboard() {
 
   const [pendingProfiles, setPendingProfiles] = useState<Profile[]>([]);
   const [approvedPumps, setApprovedPumps] = useState<Profile[]>([]);
+  
+  const [allUsers, setAllUsers] = useState<Profile[]>([]);
+  const [userSearch, setUserSearch] = useState('');
+
+  const [newQuotaName, setNewQuotaName] = useState('');
+
+  const loadData = () => {
+    setSettings(db.settings.get());
+    setBlacklist(db.blacklist.getAll());
+    setTransactions(db.transactions.getAll());
+    const profiles = db.profiles.getAll();
+    setPendingProfiles(profiles.filter(p => p.status === 'pending'));
+    setApprovedPumps(profiles.filter(p => p.role === 'operator' && p.status === 'approved'));
+    setAllUsers(profiles);
+  };
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -44,11 +59,7 @@ export default function AdminDashboard() {
     
     setTimeout(() => {
       setAdmin(parsedUser);
-      setSettings(db.settings.get());
-      setBlacklist(db.blacklist.getAll());
-      setTransactions(db.transactions.getAll());
-      setPendingProfiles(db.profiles.getAll().filter(p => p.status === 'pending'));
-      setApprovedPumps(db.profiles.getAll().filter(p => p.role === 'operator' && p.status === 'approved'));
+      loadData();
       setIsLoading(false);
     }, 1500);
   }, [navigate]);
@@ -73,20 +84,53 @@ export default function AdminDashboard() {
     }));
   };
 
+  const handleAddQuota = () => {
+    if (!newQuotaName) return;
+    setSettings(prev => ({
+      ...prev,
+      quotas: {
+        ...prev.quotas,
+        [newQuotaName]: { bdt_limit: 0, day_gap: 0 }
+      }
+    }));
+    setNewQuotaName('');
+  };
+
+  const handleRemoveQuota = (vehicleType: string) => {
+    setSettings(prev => {
+      const newQuotas = { ...prev.quotas };
+      delete newQuotas[vehicleType];
+      return { ...prev, quotas: newQuotas };
+    });
+  };
+
   const handleApprove = (id: string) => {
     db.profiles.updateStatus(id, 'approved');
-    setPendingProfiles(db.profiles.getAll().filter(p => p.status === 'pending'));
-    setApprovedPumps(db.profiles.getAll().filter(p => p.role === 'operator' && p.status === 'approved'));
+    loadData();
   };
 
   const handleReject = (id: string) => {
     db.profiles.updateStatus(id, 'rejected');
-    setPendingProfiles(db.profiles.getAll().filter(p => p.status === 'pending'));
+    loadData();
+  };
+
+  const handleDeleteUser = (id: string) => {
+    if (window.confirm('আপনি কি নিশ্চিত যে এই ইউজারকে মুছে ফেলতে চান?')) {
+      db.profiles.delete(id);
+      loadData();
+    }
+  };
+
+  const handleDeleteTransaction = (id: string) => {
+    if (window.confirm('আপনি কি নিশ্চিত যে এই ট্রানজেকশন মুছে ফেলতে চান?')) {
+      db.transactions.delete(id);
+      loadData();
+    }
   };
 
   const handleTogglePump = (id: string, currentStatus: boolean) => {
     db.profiles.togglePumpStatus(id, !currentStatus);
-    setApprovedPumps(db.profiles.getAll().filter(p => p.role === 'operator' && p.status === 'approved'));
+    loadData();
   };
 
   const handleBlockVehicle = (e: React.FormEvent) => {
@@ -119,6 +163,12 @@ export default function AdminDashboard() {
       const timeB = new Date(b.created_at).getTime();
       return txSort === 'newest' ? timeB - timeA : timeA - timeB;
     });
+
+  const filteredUsers = allUsers.filter(u => 
+    u.full_name.toLowerCase().includes(userSearch.toLowerCase()) || 
+    u.mobile.includes(userSearch) || 
+    (u.vehicle_no && u.vehicle_no.toLowerCase().includes(userSearch.toLowerCase()))
+  );
 
   if (isLoading) {
     return (
@@ -189,6 +239,13 @@ export default function AdminDashboard() {
               <Droplet className="w-4 h-4 mr-2" />
               পাম্পসমূহ
             </Button>
+            <Button 
+              variant={activeTab === 'users' ? 'default' : 'outline'} 
+              onClick={() => setActiveTab('users')}
+            >
+              <Users className="w-4 h-4 mr-2" />
+              ইউজার ম্যানেজমেন্ট
+            </Button>
             <Button variant="outline" onClick={() => { localStorage.removeItem('user'); navigate('/'); }}>
               <LogOut className="w-4 h-4 mr-2" />
               লগআউট
@@ -211,7 +268,15 @@ export default function AdminDashboard() {
                   <div className="space-y-4">
                     <Label className="text-lg text-accent-cyan">যানবাহন ভিত্তিক কোটা</Label>
                     {Object.entries(settings.quotas || {}).map(([vType, quota]) => (
-                      <div key={vType} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-xl bg-white/5 border border-white/10 items-center">
+                      <div key={vType} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-xl bg-white/5 border border-white/10 items-center relative">
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          className="absolute -top-2 -right-2 w-6 h-6 p-0 rounded-full bg-danger text-white hover:bg-danger/80"
+                          onClick={() => handleRemoveQuota(vType)}
+                        >
+                          <XCircle className="w-4 h-4" />
+                        </Button>
                         <div className="font-medium text-white">{vType}</div>
                         <div className="space-y-1">
                           <Label className="text-xs text-text-dim">সর্বোচ্চ সীমা (BDT)</Label>
@@ -231,6 +296,17 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                     ))}
+                    
+                    <div className="flex gap-2 mt-4">
+                      <Input 
+                        placeholder="নতুন যানের ধরন" 
+                        value={newQuotaName}
+                        onChange={(e) => setNewQuotaName(e.target.value)}
+                      />
+                      <Button type="button" onClick={handleAddQuota} variant="outline">
+                        <Plus className="w-4 h-4 mr-1" /> যুক্ত করুন
+                      </Button>
+                    </div>
                   </div>
                   
                   <div className="space-y-2 pt-4 border-t border-white/10">
@@ -532,6 +608,7 @@ export default function AdminDashboard() {
                         <th className="pb-3 font-medium">গাড়ির নম্বর</th>
                         <th className="pb-3 font-medium">পরিমাণ (BDT)</th>
                         <th className="pb-3 font-medium">পাম্প অপারেটর</th>
+                        <th className="pb-3 font-medium text-right">অ্যাকশন</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -548,6 +625,101 @@ export default function AdminDashboard() {
                             <td className="py-3 font-medium text-accent-cyan">{tx.vehicle_no}</td>
                             <td className="py-3 text-white font-semibold">৳ {tx.amount_bdt}</td>
                             <td className="py-3 text-sm text-text-dim">{tx.pump_id}</td>
+                            <td className="py-3 text-right">
+                              <Button variant="ghost" size="sm" className="text-danger hover:bg-danger/20" onClick={() => handleDeleteTransaction(tx.id)}>
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {activeTab === 'users' && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            <Card>
+              <CardHeader>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <CardTitle className="flex items-center">
+                      <Users className="w-5 h-5 mr-2 text-accent-cyan" />
+                      ইউজার ম্যানেজমেন্ট
+                    </CardTitle>
+                    <CardDescription>সিস্টেমের সকল ইউজার (অ্যাডমিন, অপারেটর, মালিক) পরিচালনা করুন</CardDescription>
+                  </div>
+                  <div className="relative">
+                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-dim" />
+                    <Input 
+                      placeholder="নাম, মোবাইল বা গাড়ির নম্বর..." 
+                      className="pl-9 w-full md:w-64"
+                      value={userSearch}
+                      onChange={(e) => setUserSearch(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-white/10 text-text-dim text-sm">
+                        <th className="pb-3 font-medium">নাম ও রোল</th>
+                        <th className="pb-3 font-medium">মোবাইল / ইমেইল</th>
+                        <th className="pb-3 font-medium">গাড়ি / পাম্পের তথ্য</th>
+                        <th className="pb-3 font-medium">স্ট্যাটাস</th>
+                        <th className="pb-3 font-medium text-right">অ্যাকশন</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredUsers.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="py-8 text-center text-text-dim">কোনো ইউজার পাওয়া যায়নি।</td>
+                        </tr>
+                      ) : (
+                        filteredUsers.map((u) => (
+                          <tr key={u.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                            <td className="py-3">
+                              <div className="font-medium text-white">{u.full_name}</div>
+                              <div className="text-xs text-accent-cyan uppercase">{u.role}</div>
+                            </td>
+                            <td className="py-3 text-sm">
+                              <div>{u.mobile}</div>
+                              <div className="text-text-dim">{u.email || ''}</div>
+                            </td>
+                            <td className="py-3 text-sm">
+                              {u.role === 'owner' ? (
+                                <div>
+                                  <span className="text-white">{u.vehicle_no}</span>
+                                  <span className="text-text-dim ml-2">({u.vehicle_type})</span>
+                                </div>
+                              ) : u.role === 'operator' ? (
+                                <div>
+                                  <span className="text-white">{u.pump_name}</span>
+                                </div>
+                              ) : (
+                                <span className="text-text-dim">-</span>
+                              )}
+                            </td>
+                            <td className="py-3">
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium border ${
+                                u.status === 'approved' ? 'bg-success/10 text-success border-success/20' : 
+                                u.status === 'pending' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' : 
+                                'bg-danger/10 text-danger border-danger/20'
+                              }`}>
+                                {u.status || 'approved'}
+                              </span>
+                            </td>
+                            <td className="py-3 text-right">
+                              <Button variant="ghost" size="sm" className="text-danger hover:bg-danger/20" onClick={() => handleDeleteUser(u.id)}>
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </td>
                           </tr>
                         ))
                       )}

@@ -132,6 +132,15 @@ export const db = {
         profiles[index].status = status;
       }
     },
+    update: (id: string, updates: Partial<Profile>) => {
+      const index = profiles.findIndex(p => p.id === id);
+      if (index !== -1) {
+        profiles[index] = { ...profiles[index], ...updates };
+      }
+    },
+    delete: (id: string) => {
+      profiles = profiles.filter(p => p.id !== id);
+    },
     togglePumpStatus: (id: string, isOpen: boolean) => {
       const index = profiles.findIndex(p => p.id === id);
       if (index !== -1) {
@@ -159,6 +168,9 @@ export const db = {
       const newTx = { ...tx, id: `tx-${Date.now()}`, created_at: new Date().toISOString() };
       transactions.push(newTx);
       return newTx;
+    },
+    delete: (id: string) => {
+      transactions = transactions.filter(t => t.id !== id);
     }
   }
 };
