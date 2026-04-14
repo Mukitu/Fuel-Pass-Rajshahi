@@ -9,7 +9,7 @@ import { db, Profile, VEHICLE_ZONES, VEHICLE_SERIES } from '@/src/lib/db';
 
 export default function Register() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'citizen' | 'admin' | 'operator'>('citizen');
+  const [activeTab, setActiveTab] = useState<'citizen' | 'operator'>('citizen');
   const [step, setStep] = useState(1);
   const [smartCardImage, setSmartCardImage] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -111,22 +111,6 @@ export default function Register() {
       db.profiles.create(newProfile);
       alert('আপনার নিবন্ধন সফল হয়েছে! অ্যাডমিন অনুমোদনের পর আপনি লগইন করতে পারবেন।');
       navigate('/login');
-    } else if (activeTab === 'admin') {
-      if (db.profiles.getByEmail(formData.email)) {
-        setError('এই ইমেইলটি ইতিমধ্যে নিবন্ধিত। (Email already registered)');
-        return;
-      }
-      const newProfile: Profile = {
-        id: `admin-${Date.now()}`,
-        full_name: formData.full_name,
-        mobile: formData.mobile,
-        email: formData.email,
-        password: formData.password,
-        role: 'admin'
-      };
-      db.profiles.create(newProfile);
-      localStorage.setItem('user', JSON.stringify(newProfile));
-      navigate('/dashboard/admin');
     } else if (activeTab === 'operator') {
       if (db.profiles.get(formData.mobile)) {
         setError('এই মোবাইল নম্বরটি ইতিমধ্যে নিবন্ধিত। (Mobile already registered)');
@@ -141,11 +125,12 @@ export default function Register() {
         trade_license: formData.trade_license,
         fuel_types_sold: formData.fuel_types_sold.split(',').map(s => s.trim()),
         password: formData.password,
-        role: 'operator'
+        role: 'operator',
+        status: 'pending'
       };
       db.profiles.create(newProfile);
-      localStorage.setItem('user', JSON.stringify(newProfile));
-      navigate('/dashboard/operator');
+      alert('আপনার পাম্প নিবন্ধন সফল হয়েছে! ডিসি স্যারের অনুমোদনের পর আপনি লগইন করতে পারবেন।');
+      navigate('/login');
     }
   };
 
@@ -221,12 +206,6 @@ export default function Register() {
                 onClick={() => { setActiveTab('operator'); setError(''); }}
               >
                 পাম্প অপারেটর
-              </button>
-              <button 
-                className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${activeTab === 'admin' ? 'bg-accent-cyan text-primary-blue' : 'text-text-dim hover:text-white'}`}
-                onClick={() => { setActiveTab('admin'); setError(''); }}
-              >
-                অ্যাডমিন
               </button>
             </div>
 
@@ -441,62 +420,6 @@ export default function Register() {
                       নিবন্ধন সম্পন্ন করুন
                     </Button>
                   </div>
-                </motion.div>
-              )}
-
-              {activeTab === 'admin' && (
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="admin_name">পুরো নাম (Full Name)</Label>
-                    <Input 
-                      id="admin_name" 
-                      placeholder="e.g. Admin Name" 
-                      value={formData.full_name}
-                      onChange={(e) => setFormData({...formData, full_name: e.target.value})}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="admin_mobile">মোবাইল নম্বর</Label>
-                    <Input 
-                      id="admin_mobile" 
-                      placeholder="01XXXXXXXXX" 
-                      value={formData.mobile}
-                      onChange={(e) => setFormData({...formData, mobile: e.target.value})}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="admin_email">জিমেইল (Gmail)</Label>
-                    <Input 
-                      id="admin_email" 
-                      type="email"
-                      placeholder="admin@gmail.com" 
-                      value={formData.email}
-                      onChange={(e) => setFormData({...formData, email: e.target.value})}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="admin_password">পাসওয়ার্ড (Password)</Label>
-                    <Input 
-                      id="admin_password" 
-                      type="password"
-                      placeholder="********" 
-                      value={formData.password}
-                      onChange={(e) => setFormData({...formData, password: e.target.value})}
-                      required
-                    />
-                  </div>
-                  {error && (
-                    <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-danger text-sm text-center bg-danger/10 p-3 rounded-lg border border-danger/20">
-                      {error}
-                    </motion.p>
-                  )}
-                  <Button type="submit" className="w-full mt-4" size="lg">
-                    <UserPlus className="w-5 h-5 mr-2" />
-                    অ্যাডমিন নিবন্ধন করুন
-                  </Button>
                 </motion.div>
               )}
 

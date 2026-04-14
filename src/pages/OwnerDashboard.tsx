@@ -51,14 +51,31 @@ export default function OwnerDashboard() {
     navigate('/');
   };
 
+  const [isDownloading, setIsDownloading] = useState(false);
+
   const downloadCard = async () => {
     if (cardRef.current) {
-      const canvas = await html2canvas(cardRef.current, { scale: 2 });
-      const image = canvas.toDataURL('image/png');
-      const link = document.createElement('a');
-      link.href = image;
-      link.download = `FuelPass-${user?.vehicle_no}.png`;
-      link.click();
+      try {
+        setIsDownloading(true);
+        const canvas = await html2canvas(cardRef.current, { 
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff'
+        });
+        const image = canvas.toDataURL('image/png', 1.0);
+        const link = document.createElement('a');
+        link.href = image;
+        link.download = `FuelPass-${user?.vehicle_no}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (error) {
+        console.error("Error downloading card:", error);
+        alert("কার্ড ডাউনলোড করতে সমস্যা হয়েছে। দয়া করে আবার চেষ্টা করুন।");
+      } finally {
+        setIsDownloading(false);
+      }
     }
   };
 
@@ -197,9 +214,9 @@ export default function OwnerDashboard() {
               <p className="text-sm text-text-dim mt-2">পাম্পে স্ক্যান করার জন্য এই QR কোডটি দেখান</p>
             </Card>
 
-            <Button onClick={downloadCard} className="w-full" size="lg">
+            <Button onClick={downloadCard} className="w-full" size="lg" disabled={isDownloading}>
               <Download className="w-5 h-5 mr-2" />
-              ই-ফুয়েল কার্ড ডাউনলোড করুন
+              {isDownloading ? 'ডাউনলোড হচ্ছে...' : 'ই-ফুয়েল কার্ড ডাউনলোড করুন'}
             </Button>
           </div>
 

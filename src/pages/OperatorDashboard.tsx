@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LogOut, ScanLine, Search, CheckCircle2, XCircle, AlertTriangle, QrCode } from 'lucide-react';
+import { LogOut, ScanLine, Search, CheckCircle2, XCircle, AlertTriangle, QrCode, Clock } from 'lucide-react';
 import { Scanner } from '@yudiel/react-qr-scanner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/src/components/ui/Card';
 import { Input } from '@/src/components/ui/Input';
@@ -185,6 +185,44 @@ export default function OperatorDashboard() {
   }
 
   if (!operator || !settings) return null;
+
+  if (operator.status === 'pending') {
+    return (
+      <div className="min-h-screen p-4 md:p-8 flex items-center justify-center relative overflow-hidden">
+        <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-accent-cyan/5 rounded-full blur-3xl pointer-events-none" />
+        <Card className="max-w-md w-full text-center p-8 border-yellow-500/30 bg-yellow-500/5">
+          <Clock className="w-16 h-16 text-yellow-500 mx-auto mb-6" />
+          <h2 className="text-2xl font-bold text-white mb-4">অনুমোদনের অপেক্ষায়</h2>
+          <p className="text-text-dim mb-8">
+            আপনার পাম্প অ্যাকাউন্টটি বর্তমানে ডিসি স্যারের অনুমোদনের অপেক্ষায় আছে। অনুমোদন পাওয়ার পর আপনি কার্যক্রম শুরু করতে পারবেন।
+          </p>
+          <Button variant="outline" onClick={() => { localStorage.removeItem('user'); navigate('/'); }} className="w-full">
+            <LogOut className="w-4 h-4 mr-2" />
+            লগআউট
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
+  if (operator.status === 'rejected') {
+    return (
+      <div className="min-h-screen p-4 md:p-8 flex items-center justify-center relative overflow-hidden">
+        <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-danger/5 rounded-full blur-3xl pointer-events-none" />
+        <Card className="max-w-md w-full text-center p-8 border-danger/30 bg-danger/5">
+          <XCircle className="w-16 h-16 text-danger mx-auto mb-6" />
+          <h2 className="text-2xl font-bold text-white mb-4">আবেদন বাতিল করা হয়েছে</h2>
+          <p className="text-text-dim mb-8">
+            দুঃখিত, আপনার পাম্পের আবেদনটি বাতিল করা হয়েছে।
+          </p>
+          <Button variant="outline" onClick={() => { localStorage.removeItem('user'); navigate('/'); }} className="w-full">
+            <LogOut className="w-4 h-4 mr-2" />
+            লগআউট
+          </Button>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen p-4 md:p-8 relative overflow-hidden">

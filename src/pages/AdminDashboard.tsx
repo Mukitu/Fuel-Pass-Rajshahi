@@ -339,20 +339,32 @@ export default function AdminDashboard() {
                           <div className="flex justify-between items-start">
                             <div>
                               <h3 className="text-xl font-bold text-white">{profile.full_name}</h3>
-                              <p className="text-accent-cyan font-medium">{profile.vehicle_no}</p>
+                              <p className="text-accent-cyan font-medium">
+                                {profile.role === 'owner' ? profile.vehicle_no : profile.pump_name}
+                              </p>
                             </div>
                             <span className="bg-yellow-500/20 text-yellow-400 text-xs px-3 py-1 rounded-full border border-yellow-500/30">
-                              Pending
+                              {profile.role === 'owner' ? 'Citizen' : 'Operator'} Pending
                             </span>
                           </div>
                           
                           <div className="grid grid-cols-2 gap-4 text-sm">
                             <div><span className="text-text-dim">মোবাইল:</span> <span className="text-white">{profile.mobile}</span></div>
-                            <div><span className="text-text-dim">যানের ধরন:</span> <span className="text-white">{profile.vehicle_type}</span></div>
-                            <div><span className="text-text-dim">ইঞ্জিন নং:</span> <span className="text-white">{profile.engine_no}</span></div>
-                            <div><span className="text-text-dim">চ্যাসিস নং:</span> <span className="text-white">{profile.chassis_no}</span></div>
-                            <div><span className="text-text-dim">পেশা:</span> <span className="text-white">{profile.profession}</span></div>
-                            <div><span className="text-text-dim">ঠিকানা:</span> <span className="text-white">{profile.address}</span></div>
+                            {profile.role === 'owner' ? (
+                              <>
+                                <div><span className="text-text-dim">যানের ধরন:</span> <span className="text-white">{profile.vehicle_type}</span></div>
+                                <div><span className="text-text-dim">ইঞ্জিন নং:</span> <span className="text-white">{profile.engine_no}</span></div>
+                                <div><span className="text-text-dim">চ্যাসিস নং:</span> <span className="text-white">{profile.chassis_no}</span></div>
+                                <div><span className="text-text-dim">পেশা:</span> <span className="text-white">{profile.profession}</span></div>
+                                <div><span className="text-text-dim">ঠিকানা:</span> <span className="text-white">{profile.address}</span></div>
+                              </>
+                            ) : (
+                              <>
+                                <div><span className="text-text-dim">লোকেশন:</span> <span className="text-white">{profile.location}</span></div>
+                                <div><span className="text-text-dim">ট্রেড লাইসেন্স:</span> <span className="text-white">{profile.trade_license}</span></div>
+                                <div className="col-span-2"><span className="text-text-dim">জ্বালানি:</span> <span className="text-white">{profile.fuel_types_sold?.join(', ')}</span></div>
+                              </>
+                            )}
                           </div>
 
                           <div className="flex gap-3 pt-4">
@@ -368,14 +380,27 @@ export default function AdminDashboard() {
                         </div>
                         
                         <div className="w-full lg:w-1/3">
-                          <p className="text-sm text-text-dim mb-2">স্মার্ট কার্ডের ছবি:</p>
-                          {profile.smart_card_url ? (
-                            <div className="rounded-lg overflow-hidden border border-white/10 bg-black/50 aspect-video flex items-center justify-center">
-                              <img src={profile.smart_card_url} alt="Smart Card" className="max-w-full max-h-full object-contain" />
-                            </div>
+                          {profile.role === 'owner' ? (
+                            <>
+                              <p className="text-sm text-text-dim mb-2">স্মার্ট কার্ডের ছবি:</p>
+                              {profile.smart_card_url ? (
+                                <div className="rounded-lg overflow-hidden border border-white/10 bg-black/50 aspect-video flex items-center justify-center">
+                                  <img src={profile.smart_card_url} alt="Smart Card" className="max-w-full max-h-full object-contain" />
+                                </div>
+                              ) : (
+                                <div className="rounded-lg border border-white/10 border-dashed bg-white/5 aspect-video flex items-center justify-center text-text-dim text-sm">
+                                  ছবি পাওয়া যায়নি
+                                </div>
+                              )}
+                            </>
                           ) : (
-                            <div className="rounded-lg border border-white/10 border-dashed bg-white/5 aspect-video flex items-center justify-center text-text-dim text-sm">
-                              ছবি পাওয়া যায়নি
+                            <div className="h-full flex items-center justify-center">
+                              <div className="text-center">
+                                <div className="w-16 h-16 bg-accent-cyan/10 rounded-full flex items-center justify-center mx-auto mb-2">
+                                  <Activity className="w-8 h-8 text-accent-cyan" />
+                                </div>
+                                <p className="text-sm text-text-dim">পাম্প অপারেটর অ্যাকাউন্ট</p>
+                              </div>
                             </div>
                           )}
                         </div>
