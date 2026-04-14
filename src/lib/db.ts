@@ -41,6 +41,7 @@ export interface QuotaSettings {
 export interface GlobalSettings {
   quotas: Record<string, QuotaSettings>;
   marquee_text: string;
+  auto_penalty_days?: number;
 }
 
 export interface BlacklistEntry {
@@ -89,6 +90,7 @@ let globalSettings: GlobalSettings = {
     'প্রাইভেট অ্যাম্বুলেন্স': { bdt_limit: 5000, day_gap: 2 },
   },
   marquee_text: "রাজশাহী জেলা প্রশাসনের ডিজিটাল ফুয়েল ম্যানেজমেন্ট সিস্টেমে আপনাকে স্বাগতম। প্রতিটি পাম্পে QR কোড স্ক্যান করে তেল নিন। নির্ধারিত কোটার বেশি তেল নেওয়া যাবে না। সকল গাড়ি রেজিস্ট্রেশন বাধ্যতামূলক।",
+  auto_penalty_days: 7,
 };
 
 export const VEHICLE_ZONES = [

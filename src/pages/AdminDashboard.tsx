@@ -234,6 +234,16 @@ export default function AdminDashboard() {
                   </div>
                   
                   <div className="space-y-2 pt-4 border-t border-white/10">
+                    <Label className="text-danger">স্বয়ংক্রিয় শাস্তির মেয়াদ (Auto-Penalty Days)</Label>
+                    <p className="text-xs text-text-dim mb-2">কেউ সময়ের আগে তেল নেওয়ার চেষ্টা করলে স্বয়ংক্রিয়ভাবে কতদিন ব্লক হবে?</p>
+                    <Input 
+                      type="number" 
+                      value={settings.auto_penalty_days || 0}
+                      onChange={(e) => setSettings({...settings, auto_penalty_days: parseInt(e.target.value) || 0})}
+                    />
+                  </div>
+
+                  <div className="space-y-2 pt-4 border-t border-white/10">
                     <Label>নোটিশ বোর্ডের লেখা (Marquee Text)</Label>
                     <textarea 
                       className="flex w-full rounded-xl glass-input px-4 py-3 text-sm outline-none min-h-[100px] resize-y"

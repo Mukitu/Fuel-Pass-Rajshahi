@@ -129,8 +129,21 @@ export default function OperatorDashboard() {
       const nextRefillDate = new Date(lastTxDate.getTime() + vehicleQuota.day_gap * 24 * 60 * 60 * 1000);
       
       if (new Date() < nextRefillDate) {
-        setValidationStatus('gap_error');
-        setValidationMessage(`আপনি ${lastTxDate.toLocaleDateString('bn-BD')} তারিখে তেল নিয়েছেন, আপনি আবার ${nextRefillDate.toLocaleDateString('bn-BD')} তারিখে তেল পাবেন।`);
+        const penaltyDays = settings.auto_penalty_days || 0;
+        if (penaltyDays > 0) {
+          const blockedUntil = new Date();
+          blockedUntil.setDate(blockedUntil.getDate() + penaltyDays);
+          db.blacklist.add({
+            vehicle_no: vehicle.vehicle_no!,
+            blocked_until: blockedUntil.toISOString(),
+            reason: 'নির্ধারিত সময়ের আগে তেল নেওয়ার চেষ্টা (Quota Violation)'
+          });
+          setValidationStatus('blocked');
+          setValidationMessage(`সতর্কতা: নির্ধারিত সময়ের আগে তেল নেওয়ার চেষ্টার কারণে গাড়িটি স্বয়ংক্রিয়ভাবে ${penaltyDays} দিনের জন্য ব্লক করা হয়েছে!`);
+        } else {
+          setValidationStatus('gap_error');
+          setValidationMessage(`আপনি ${lastTxDate.toLocaleDateString('bn-BD')} তারিখে তেল নিয়েছেন, আপনি আবার ${nextRefillDate.toLocaleDateString('bn-BD')} তারিখে তেল পাবেন।`);
+        }
         return;
       }
     }
