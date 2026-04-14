@@ -30,6 +30,7 @@ export interface Profile {
   location?: string;
   trade_license?: string;
   fuel_types_sold?: string[];
+  is_open?: boolean; // Added to track if pump is open
 }
 
 export interface QuotaSettings {
@@ -58,8 +59,8 @@ export interface Transaction {
 
 // Initial Mock Data
 let profiles: Profile[] = [
-  { id: 'admin-1', full_name: 'DC Admin', mobile: '01700000000', email: 'admin@rajshahi.gov.bd', password: 'admin', role: 'admin', status: 'approved' },
-  { id: 'op-1', full_name: 'Pump Operator 1', mobile: '01800000000', pump_name: 'Rajshahi Filling Station', password: 'pump', role: 'operator', status: 'approved' },
+  { id: 'admin-1', full_name: 'DC Admin', mobile: '01303595062', email: 'mukituislamnishat@gmail.com', password: '2244172129@Nishat', role: 'admin', status: 'approved' },
+  { id: 'op-1', full_name: 'Pump Operator 1', mobile: '01800000000', pump_name: 'Rajshahi Filling Station', location: 'সাহেব বাজার, রাজশাহী', password: 'pump', role: 'operator', status: 'approved', is_open: true },
   { 
     id: 'owner-1', 
     full_name: 'Rahim Uddin', 
@@ -118,11 +119,21 @@ export const db = {
     getByVehicle: (vehicle_no: string) => profiles.find(p => p.vehicle_no === vehicle_no),
     getByEngine: (engine_no: string) => profiles.find(p => p.engine_no === engine_no),
     getByChassis: (chassis_no: string) => profiles.find(p => p.chassis_no === chassis_no),
-    create: (profile: Profile) => { profiles.push(profile); return profile; },
+    create: (profile: Profile) => { 
+      if (profile.role === 'operator') profile.is_open = true;
+      profiles.push(profile); 
+      return profile; 
+    },
     updateStatus: (id: string, status: 'approved' | 'rejected') => {
       const index = profiles.findIndex(p => p.id === id);
       if (index !== -1) {
         profiles[index].status = status;
+      }
+    },
+    togglePumpStatus: (id: string, isOpen: boolean) => {
+      const index = profiles.findIndex(p => p.id === id);
+      if (index !== -1) {
+        profiles[index].is_open = isOpen;
       }
     }
   },

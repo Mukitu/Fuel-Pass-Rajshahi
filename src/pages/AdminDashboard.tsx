@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { LogOut, Settings, ShieldAlert, Activity, Save, Search, Filter, CheckCircle, XCircle, Users } from 'lucide-react';
+import { LogOut, Settings, ShieldAlert, Activity, Save, Search, Filter, CheckCircle, XCircle, Users, Droplet, Power } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/src/components/ui/Card';
 import { Input } from '@/src/components/ui/Input';
 import { Button } from '@/src/components/ui/Button';
@@ -13,7 +13,7 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const [admin, setAdmin] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'settings' | 'transactions' | 'approvals'>('settings');
+  const [activeTab, setActiveTab] = useState<'settings' | 'transactions' | 'approvals' | 'pumps'>('settings');
   
   const [settings, setSettings] = useState<GlobalSettings>({ quotas: {}, marquee_text: '' });
   const [isSaving, setIsSaving] = useState(false);
@@ -28,6 +28,7 @@ export default function AdminDashboard() {
   const [txSort, setTxSort] = useState<'newest' | 'oldest'>('newest');
 
   const [pendingProfiles, setPendingProfiles] = useState<Profile[]>([]);
+  const [approvedPumps, setApprovedPumps] = useState<Profile[]>([]);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -47,6 +48,7 @@ export default function AdminDashboard() {
       setBlacklist(db.blacklist.getAll());
       setTransactions(db.transactions.getAll());
       setPendingProfiles(db.profiles.getAll().filter(p => p.status === 'pending'));
+      setApprovedPumps(db.profiles.getAll().filter(p => p.role === 'operator' && p.status === 'approved'));
       setIsLoading(false);
     }, 1500);
   }, [navigate]);
@@ -74,11 +76,17 @@ export default function AdminDashboard() {
   const handleApprove = (id: string) => {
     db.profiles.updateStatus(id, 'approved');
     setPendingProfiles(db.profiles.getAll().filter(p => p.status === 'pending'));
+    setApprovedPumps(db.profiles.getAll().filter(p => p.role === 'operator' && p.status === 'approved'));
   };
 
   const handleReject = (id: string) => {
     db.profiles.updateStatus(id, 'rejected');
     setPendingProfiles(db.profiles.getAll().filter(p => p.status === 'pending'));
+  };
+
+  const handleTogglePump = (id: string, currentStatus: boolean) => {
+    db.profiles.togglePumpStatus(id, !currentStatus);
+    setApprovedPumps(db.profiles.getAll().filter(p => p.role === 'operator' && p.status === 'approved'));
   };
 
   const handleBlockVehicle = (e: React.FormEvent) => {
@@ -173,6 +181,13 @@ export default function AdminDashboard() {
                   {pendingProfiles.length}
                 </span>
               )}
+            </Button>
+            <Button 
+              variant={activeTab === 'pumps' ? 'default' : 'outline'} 
+              onClick={() => setActiveTab('pumps')}
+            >
+              <Droplet className="w-4 h-4 mr-2" />
+              পাম্পসমূহ
             </Button>
             <Button variant="outline" onClick={() => { localStorage.removeItem('user'); navigate('/'); }}>
               <LogOut className="w-4 h-4 mr-2" />
@@ -404,6 +419,58 @@ export default function AdminDashboard() {
                             </div>
                           )}
                         </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {activeTab === 'pumps' && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Droplet className="w-5 h-5 mr-2 text-accent-cyan" />
+                  পাম্প ব্যবস্থাপনা
+                </CardTitle>
+                <CardDescription>অনুমোদিত পাম্পগুলোর তালিকা এবং তাদের বর্তমান অবস্থা (খোলা/বন্ধ)</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {approvedPumps.length === 0 ? (
+                  <div className="text-center py-12 text-text-dim">
+                    <p>কোনো অনুমোদিত পাম্প পাওয়া যায়নি।</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {approvedPumps.map(pump => (
+                      <div key={pump.id} className="bg-white/5 border border-white/10 rounded-xl p-6 flex flex-col justify-between">
+                        <div>
+                          <div className="flex justify-between items-start mb-4">
+                            <div>
+                              <h3 className="text-xl font-bold text-white">{pump.pump_name}</h3>
+                              <p className="text-text-dim text-sm">{pump.location}</p>
+                            </div>
+                            <div className={`px-3 py-1 rounded-full text-xs font-medium border ${pump.is_open !== false ? 'bg-success/10 text-success border-success/20' : 'bg-danger/10 text-danger border-danger/20'}`}>
+                              {pump.is_open !== false ? 'খোলা আছে' : 'বন্ধ আছে'}
+                            </div>
+                          </div>
+                          <div className="space-y-2 text-sm mb-6">
+                            <div><span className="text-text-dim">অপারেটর:</span> <span className="text-white">{pump.full_name}</span></div>
+                            <div><span className="text-text-dim">মোবাইল:</span> <span className="text-white">{pump.mobile}</span></div>
+                            <div><span className="text-text-dim">জ্বালানি:</span> <span className="text-white">{pump.fuel_types_sold?.join(', ')}</span></div>
+                          </div>
+                        </div>
+                        <Button 
+                          variant={pump.is_open !== false ? 'danger' : 'default'}
+                          className="w-full"
+                          onClick={() => handleTogglePump(pump.id, pump.is_open !== false)}
+                        >
+                          <Power className="w-4 h-4 mr-2" />
+                          {pump.is_open !== false ? 'পাম্প বন্ধ করুন' : 'পাম্প চালু করুন'}
+                        </Button>
                       </div>
                     ))}
                   </div>

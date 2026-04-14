@@ -1,5 +1,11 @@
 -- Supabase SQL Schema for Rajshahi Fuel Pass
 
+-- Drop existing tables if they exist to avoid conflicts
+DROP TABLE IF EXISTS transactions CASCADE;
+DROP TABLE IF EXISTS blacklist CASCADE;
+DROP TABLE IF EXISTS global_settings CASCADE;
+DROP TABLE IF EXISTS profiles CASCADE;
+
 -- 1. Create Profiles Table
 CREATE TABLE profiles (
   id UUID REFERENCES auth.users(id) PRIMARY KEY,
@@ -25,6 +31,7 @@ CREATE TABLE profiles (
   location TEXT,
   trade_license TEXT,
   fuel_types_sold TEXT[],
+  is_open BOOLEAN DEFAULT true,
   
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()

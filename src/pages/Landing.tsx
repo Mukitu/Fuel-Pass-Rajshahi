@@ -1,16 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { LogIn, Car, Droplet, ShieldCheck, Megaphone } from 'lucide-react';
+import { LogIn, Car, Droplet, ShieldCheck, Megaphone, MapPin } from 'lucide-react';
 import { Button } from '@/src/components/ui/Button';
-import { db, GlobalSettings } from '@/src/lib/db';
+import { Card, CardContent } from '@/src/components/ui/Card';
+import { db, GlobalSettings, Profile } from '@/src/lib/db';
 
 export default function Landing() {
   const navigate = useNavigate();
   const [settings, setSettings] = useState<GlobalSettings | null>(null);
+  const [pumps, setPumps] = useState<Profile[]>([]);
 
   useEffect(() => {
     setSettings(db.settings.get());
+    setPumps(db.profiles.getAll().filter(p => p.role === 'operator' && p.status === 'approved'));
   }, []);
 
   return (
@@ -74,6 +77,12 @@ export default function Landing() {
               <Car className="w-5 h-5 mr-2" />
               গাড়ি রেজিস্ট্রেশন করুন
             </Button>
+            <Button size="lg" variant="outline" onClick={() => {
+              document.getElementById('pumps-section')?.scrollIntoView({ behavior: 'smooth' });
+            }} className="text-lg px-8 border-accent-cyan text-accent-cyan hover:bg-accent-cyan/10">
+              <Droplet className="w-5 h-5 mr-2" />
+              পাম্প দেখুন
+            </Button>
           </div>
         </motion.div>
 
@@ -109,6 +118,45 @@ export default function Landing() {
           </div>
         </motion.div>
       </main>
+
+      {/* Pumps Section */}
+      <section id="pumps-section" className="py-20 relative z-10 bg-black/20 border-t border-white/5">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">আমাদের পাম্পসমূহ</h2>
+            <p className="text-text-dim max-w-2xl mx-auto">রাজশাহী জেলার অনুমোদিত সকল ফুয়েল পাম্পের তালিকা এবং তাদের বর্তমান অবস্থা।</p>
+          </div>
+          
+          {pumps.length === 0 ? (
+            <div className="text-center py-12 text-text-dim">
+              <p>কোনো অনুমোদিত পাম্প পাওয়া যায়নি।</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {pumps.map(pump => (
+                <Card key={pump.id} className="bg-white/5 border-white/10 hover:border-accent-cyan/30 transition-colors">
+                  <CardContent className="p-6">
+                    <div className="flex justify-between items-start mb-4">
+                      <h3 className="text-xl font-bold text-white">{pump.pump_name}</h3>
+                      <div className={`px-3 py-1 rounded-full text-xs font-medium border ${pump.is_open !== false ? 'bg-success/10 text-success border-success/20' : 'bg-danger/10 text-danger border-danger/20'}`}>
+                        {pump.is_open !== false ? 'খোলা আছে' : 'বন্ধ আছে'}
+                      </div>
+                    </div>
+                    <div className="flex items-start text-text-dim mb-4">
+                      <MapPin className="w-4 h-4 mr-2 mt-1 shrink-0" />
+                      <span className="text-sm">{pump.location}</span>
+                    </div>
+                    <div className="text-sm">
+                      <span className="text-text-dim">জ্বালানি: </span>
+                      <span className="text-white">{pump.fuel_types_sold?.join(', ')}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* Marquee Footer */}
       <div className="w-full bg-primary-blue/80 backdrop-blur-md border-t border-glass-border py-3 overflow-hidden z-50 flex items-center">
