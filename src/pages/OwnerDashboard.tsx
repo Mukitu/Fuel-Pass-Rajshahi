@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { motion } from 'framer-motion';
 import { LogOut, Car, Droplet, Calendar, AlertTriangle, Download, History, Clock, XCircle } from 'lucide-react';
-import html2canvas from 'html2canvas';
+import * as htmlToImage from 'html-to-image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/Card';
 import { Button } from '@/src/components/ui/Button';
 import { db, Profile, GlobalSettings, BlacklistEntry, Transaction } from '@/src/lib/db';
@@ -57,31 +57,19 @@ export default function OwnerDashboard() {
     if (cardRef.current) {
       try {
         setIsDownloading(true);
-        // Add a temporary class to ensure the card is rendered with correct styles for canvas
-        cardRef.current.classList.add('downloading-card');
         
-        const canvas = await html2canvas(cardRef.current, { 
-          scale: 3, // Higher scale for better quality
-          useCORS: true,
-          allowTaint: true,
+        // Use html-to-image which supports modern CSS (Tailwind v4) much better
+        const dataUrl = await htmlToImage.toPng(cardRef.current, {
+          quality: 1.0,
+          pixelRatio: 3, // High resolution
           backgroundColor: '#ffffff',
-          logging: false,
-          onclone: (clonedDoc) => {
-            // Ensure the cloned element has proper styling
-            const clonedCard = clonedDoc.getElementById('fuel-card-preview');
-            if (clonedCard) {
-              clonedCard.style.transform = 'none';
-              clonedCard.style.width = '600px'; // Fixed width for consistent rendering
-              clonedCard.style.height = 'auto';
-            }
+          style: {
+            transform: 'none', // Ensure no scaling issues
           }
         });
         
-        cardRef.current.classList.remove('downloading-card');
-        
-        const image = canvas.toDataURL('image/png', 1.0);
         const link = document.createElement('a');
-        link.href = image;
+        link.href = dataUrl;
         link.download = `FuelPass-${user?.vehicle_no}.png`;
         document.body.appendChild(link);
         link.click();
