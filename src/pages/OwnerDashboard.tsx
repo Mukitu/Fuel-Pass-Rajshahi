@@ -57,12 +57,28 @@ export default function OwnerDashboard() {
     if (cardRef.current) {
       try {
         setIsDownloading(true);
+        // Add a temporary class to ensure the card is rendered with correct styles for canvas
+        cardRef.current.classList.add('downloading-card');
+        
         const canvas = await html2canvas(cardRef.current, { 
-          scale: 2,
+          scale: 3, // Higher scale for better quality
           useCORS: true,
           allowTaint: true,
-          backgroundColor: '#ffffff'
+          backgroundColor: '#ffffff',
+          logging: false,
+          onclone: (clonedDoc) => {
+            // Ensure the cloned element has proper styling
+            const clonedCard = clonedDoc.getElementById('fuel-card-preview');
+            if (clonedCard) {
+              clonedCard.style.transform = 'none';
+              clonedCard.style.width = '600px'; // Fixed width for consistent rendering
+              clonedCard.style.height = 'auto';
+            }
+          }
         });
+        
+        cardRef.current.classList.remove('downloading-card');
+        
         const image = canvas.toDataURL('image/png', 1.0);
         const link = document.createElement('a');
         link.href = image;
@@ -222,7 +238,7 @@ export default function OwnerDashboard() {
 
           <div className="md:col-span-2 space-y-6">
             {/* E-Fuel Card Hidden for Download, but visible in UI as a preview */}
-            <div className="overflow-hidden rounded-2xl border border-glass-border bg-white text-black relative" ref={cardRef}>
+            <div id="fuel-card-preview" className="overflow-hidden rounded-2xl border border-glass-border bg-white text-black relative" ref={cardRef}>
               {/* Card Header */}
               <div className="bg-[#0A5C36] text-white p-4 flex justify-between items-center">
                 <div className="flex items-center gap-3">
