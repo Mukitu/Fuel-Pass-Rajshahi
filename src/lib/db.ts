@@ -7,6 +7,7 @@ export interface Profile {
   full_name: string;
   mobile: string;
   role: Role;
+  status?: 'pending' | 'approved' | 'rejected'; // Added status
   
   // Owner specific
   vehicle_no?: string;
@@ -18,6 +19,7 @@ export interface Profile {
   profession?: string;
   cc?: string;
   address?: string;
+  smart_card_url?: string; // Added smart card image URL
 
   // Admin specific
   email?: string;
@@ -30,9 +32,13 @@ export interface Profile {
   fuel_types_sold?: string[];
 }
 
-export interface GlobalSettings {
+export interface QuotaSettings {
   bdt_limit: number;
   day_gap: number;
+}
+
+export interface GlobalSettings {
+  quotas: Record<string, QuotaSettings>;
   marquee_text: string;
 }
 
@@ -52,8 +58,8 @@ export interface Transaction {
 
 // Initial Mock Data
 let profiles: Profile[] = [
-  { id: 'admin-1', full_name: 'DC Admin', mobile: '01700000000', email: 'admin@rajshahi.gov.bd', password: 'admin', role: 'admin' },
-  { id: 'op-1', full_name: 'Pump Operator 1', mobile: '01800000000', pump_name: 'Rajshahi Filling Station', password: 'pump', role: 'operator' },
+  { id: 'admin-1', full_name: 'DC Admin', mobile: '01700000000', email: 'admin@rajshahi.gov.bd', password: 'admin', role: 'admin', status: 'approved' },
+  { id: 'op-1', full_name: 'Pump Operator 1', mobile: '01800000000', pump_name: 'Rajshahi Filling Station', password: 'pump', role: 'operator', status: 'approved' },
   { 
     id: 'owner-1', 
     full_name: 'Rahim Uddin', 
@@ -67,13 +73,20 @@ let profiles: Profile[] = [
     profession: 'ছাত্র',
     cc: '150',
     address: 'বোয়ালিয়া, রাজশাহী',
-    role: 'owner' 
+    role: 'owner',
+    status: 'approved'
   },
 ];
 
 let globalSettings: GlobalSettings = {
-  bdt_limit: 2000,
-  day_gap: 5,
+  quotas: {
+    'মোটরসাইকেল': { bdt_limit: 500, day_gap: 3 },
+    'প্রাইভেট কার': { bdt_limit: 3000, day_gap: 7 },
+    'ট্রাক': { bdt_limit: 10000, day_gap: 5 },
+    'বাস': { bdt_limit: 15000, day_gap: 5 },
+    'কোম্পানির ট্রাক': { bdt_limit: 12000, day_gap: 5 },
+    'প্রাইভেট অ্যাম্বুলেন্স': { bdt_limit: 5000, day_gap: 2 },
+  },
   marquee_text: "রাজশাহী জেলা প্রশাসনের ডিজিটাল ফুয়েল ম্যানেজমেন্ট সিস্টেমে আপনাকে স্বাগতম। প্রতিটি পাম্পে QR কোড স্ক্যান করে তেল নিন। নির্ধারিত কোটার বেশি তেল নেওয়া যাবে না। সকল গাড়ি রেজিস্ট্রেশন বাধ্যতামূলক।",
 };
 
@@ -99,10 +112,19 @@ let transactions: Transaction[] = [
 
 export const db = {
   profiles: {
+    getAll: () => [...profiles],
     get: (mobile: string) => profiles.find(p => p.mobile === mobile),
     getByEmail: (email: string) => profiles.find(p => p.email === email),
     getByVehicle: (vehicle_no: string) => profiles.find(p => p.vehicle_no === vehicle_no),
-    create: (profile: Profile) => { profiles.push(profile); return profile; }
+    getByEngine: (engine_no: string) => profiles.find(p => p.engine_no === engine_no),
+    getByChassis: (chassis_no: string) => profiles.find(p => p.chassis_no === chassis_no),
+    create: (profile: Profile) => { profiles.push(profile); return profile; },
+    updateStatus: (id: string, status: 'approved' | 'rejected') => {
+      const index = profiles.findIndex(p => p.id === id);
+      if (index !== -1) {
+        profiles[index].status = status;
+      }
+    }
   },
   settings: {
     get: () => ({ ...globalSettings }),

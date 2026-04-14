@@ -105,7 +105,14 @@ export default function OperatorDashboard() {
   const validateVehicle = (vehicle: Profile) => {
     if (!settings) return;
 
-    // 1. Check Blacklist
+    // 1. Check Approval Status
+    if (vehicle.status !== 'approved') {
+      setValidationStatus('blocked');
+      setValidationMessage('এই গাড়িটির নিবন্ধন এখনো অ্যাডমিন কর্তৃক অনুমোদিত হয়নি বা বাতিল করা হয়েছে।');
+      return;
+    }
+
+    // 2. Check Blacklist
     const blacklistEntry = db.blacklist.get(vehicle.vehicle_no!);
     if (blacklistEntry && new Date(blacklistEntry.blocked_until) > new Date()) {
       setValidationStatus('blocked');
@@ -113,11 +120,13 @@ export default function OperatorDashboard() {
       return;
     }
 
-    // 2. Check Time Gap
+    const vehicleQuota = settings.quotas[vehicle.vehicle_type || ''] || { bdt_limit: 0, day_gap: 0 };
+
+    // 3. Check Time Gap
     const txs = db.transactions.getByVehicle(vehicle.vehicle_no!);
     if (txs.length > 0) {
       const lastTxDate = new Date(txs[0].created_at);
-      const nextRefillDate = new Date(lastTxDate.getTime() + settings.day_gap * 24 * 60 * 60 * 1000);
+      const nextRefillDate = new Date(lastTxDate.getTime() + vehicleQuota.day_gap * 24 * 60 * 60 * 1000);
       
       if (new Date() < nextRefillDate) {
         setValidationStatus('gap_error');
@@ -134,9 +143,10 @@ export default function OperatorDashboard() {
     e.preventDefault();
     if (!scannedVehicle || !operator || validationStatus !== 'valid' || !settings) return;
 
+    const vehicleQuota = settings.quotas[scannedVehicle.vehicle_type || ''] || { bdt_limit: 0, day_gap: 0 };
     const numAmount = Number(amount);
-    if (numAmount <= 0 || numAmount > settings.bdt_limit) {
-      alert(`পরিমাণ 0 থেকে ${settings.bdt_limit} টাকার মধ্যে হতে হবে।`);
+    if (numAmount <= 0 || numAmount > vehicleQuota.bdt_limit) {
+      alert(`পরিমাণ 0 থেকে ${vehicleQuota.bdt_limit} টাকার মধ্যে হতে হবে।`);
       return;
     }
 
@@ -303,7 +313,7 @@ export default function OperatorDashboard() {
                   <Card>
                     <CardHeader>
                       <CardTitle>জ্বালানি প্রদান (Refill)</CardTitle>
-                      <CardDescription>সর্বোচ্চ সীমা: ৳ {settings.bdt_limit}</CardDescription>
+                      <CardDescription>সর্বোচ্চ সীমা: ৳ {settings.quotas[scannedVehicle.vehicle_type || '']?.bdt_limit || 0}</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <form onSubmit={handleTransaction} className="space-y-4">
@@ -314,7 +324,7 @@ export default function OperatorDashboard() {
                             placeholder="0" 
                             value={amount}
                             onChange={(e) => setAmount(e.target.value)}
-                            max={settings.bdt_limit}
+                            max={settings.quotas[scannedVehicle.vehicle_type || '']?.bdt_limit || 0}
                             required
                           />
                         </div>

@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { motion } from 'framer-motion';
-import { LogOut, Car, Droplet, Calendar, AlertTriangle, Download, History } from 'lucide-react';
+import { LogOut, Car, Droplet, Calendar, AlertTriangle, Download, History, Clock, XCircle } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/Card';
 import { Button } from '@/src/components/ui/Button';
@@ -89,18 +89,59 @@ export default function OwnerDashboard() {
 
   if (!user || !settings) return null;
 
+  if (user.status === 'pending') {
+    return (
+      <div className="min-h-screen p-4 md:p-8 flex items-center justify-center relative overflow-hidden">
+        <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-accent-cyan/5 rounded-full blur-3xl pointer-events-none" />
+        <Card className="max-w-md w-full text-center p-8 border-yellow-500/30 bg-yellow-500/5">
+          <Clock className="w-16 h-16 text-yellow-500 mx-auto mb-6" />
+          <h2 className="text-2xl font-bold text-white mb-4">অনুমোদনের অপেক্ষায়</h2>
+          <p className="text-text-dim mb-8">
+            আপনার অ্যাকাউন্টটি বর্তমানে অ্যাডমিন অনুমোদনের অপেক্ষায় আছে। আপনার দেওয়া তথ্য এবং স্মার্ট কার্ড যাচাই করার পর আপনাকে ই-ফুয়েল কার্ড প্রদান করা হবে।
+          </p>
+          <Button variant="outline" onClick={handleLogout} className="w-full">
+            <LogOut className="w-4 h-4 mr-2" />
+            লগআউট
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
+  if (user.status === 'rejected') {
+    return (
+      <div className="min-h-screen p-4 md:p-8 flex items-center justify-center relative overflow-hidden">
+        <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-danger/5 rounded-full blur-3xl pointer-events-none" />
+        <Card className="max-w-md w-full text-center p-8 border-danger/30 bg-danger/5">
+          <XCircle className="w-16 h-16 text-danger mx-auto mb-6" />
+          <h2 className="text-2xl font-bold text-white mb-4">আবেদন বাতিল করা হয়েছে</h2>
+          <p className="text-text-dim mb-8">
+            দুঃখিত, আপনার দেওয়া তথ্যে অসামঞ্জস্যতা থাকায় আপনার আবেদনটি বাতিল করা হয়েছে। দয়া করে সঠিক তথ্য দিয়ে পুনরায় নিবন্ধন করুন।
+          </p>
+          <Button variant="outline" onClick={handleLogout} className="w-full">
+            <LogOut className="w-4 h-4 mr-2" />
+            লগআউট
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
   const isBlocked = blacklistStatus && new Date(blacklistStatus.blocked_until) > new Date();
+  const vehicleQuota = settings.quotas[user.vehicle_type || ''] || { bdt_limit: 0, day_gap: 0 };
   
   let nextRefillDate = null;
   let canRefill = true;
   
   if (lastTx) {
     const lastTxDate = new Date(lastTx.created_at);
-    nextRefillDate = new Date(lastTxDate.getTime() + settings.day_gap * 24 * 60 * 60 * 1000);
+    nextRefillDate = new Date(lastTxDate.getTime() + vehicleQuota.day_gap * 24 * 60 * 60 * 1000);
     if (new Date() < nextRefillDate) {
       canRefill = false;
     }
   }
+
+  const needsSlotManagement = ['কোম্পানির ট্রাক', 'বাস', 'প্রাইভেট অ্যাম্বুলেন্স'].includes(user.vehicle_type || '');
 
   return (
     <div className="min-h-screen p-4 md:p-8 relative overflow-hidden">
@@ -263,6 +304,29 @@ export default function OwnerDashboard() {
               </div>
             </div>
 
+            {needsSlotManagement && (
+              <Card className="border-accent-cyan/30 bg-accent-cyan/5">
+                <CardHeader>
+                  <CardTitle className="text-xl flex items-center text-accent-cyan">
+                    <Calendar className="w-5 h-5 mr-2" />
+                    স্লট বুকিং (Slot Management)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-text-dim mb-4">কোম্পানির ট্রাক, বাস এবং অ্যাম্বুলেন্সের জন্য অগ্রিম স্লট বুকিং বাধ্যতামূলক।</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <Button variant="outline" className="w-full justify-start">
+                      <Clock className="w-4 h-4 mr-2" />
+                      আজকের স্লট দেখুন
+                    </Button>
+                    <Button className="w-full">
+                      নতুন স্লট বুক করুন
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             <Card>
               <CardHeader>
                 <CardTitle className="text-xl flex items-center">
@@ -274,11 +338,11 @@ export default function OwnerDashboard() {
                 <div className="flex justify-between items-center p-4 rounded-xl bg-white/5 border border-white/10">
                   <div>
                     <p className="text-sm text-text-dim">সর্বোচ্চ সীমা</p>
-                    <p className="text-2xl font-bold text-success">৳ {settings.bdt_limit}</p>
+                    <p className="text-2xl font-bold text-success">৳ {vehicleQuota.bdt_limit}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-text-dim">সময়সীমা</p>
-                    <p className="text-xl font-semibold text-white">প্রতি {settings.day_gap} দিন</p>
+                    <p className="text-xl font-semibold text-white">প্রতি {vehicleQuota.day_gap} দিন</p>
                   </div>
                 </div>
 

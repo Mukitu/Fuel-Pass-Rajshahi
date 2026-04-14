@@ -1,21 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { LogOut, Settings, ShieldAlert, Activity, Save, Search, Filter } from 'lucide-react';
+import { LogOut, Settings, ShieldAlert, Activity, Save, Search, Filter, CheckCircle, XCircle, Users } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/src/components/ui/Card';
 import { Input } from '@/src/components/ui/Input';
 import { Button } from '@/src/components/ui/Button';
 import { Label } from '@/src/components/ui/Label';
-import { db, Profile, GlobalSettings, BlacklistEntry, Transaction } from '@/src/lib/db';
+import { db, Profile, GlobalSettings, BlacklistEntry, Transaction, QuotaSettings } from '@/src/lib/db';
 import { Shimmer } from '@/src/components/ui/Shimmer';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const [admin, setAdmin] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'settings' | 'transactions'>('settings');
+  const [activeTab, setActiveTab] = useState<'settings' | 'transactions' | 'approvals'>('settings');
   
-  const [settings, setSettings] = useState<GlobalSettings>({ bdt_limit: 0, day_gap: 0, marquee_text: '' });
+  const [settings, setSettings] = useState<GlobalSettings>({ quotas: {}, marquee_text: '' });
   const [isSaving, setIsSaving] = useState(false);
   
   const [blacklist, setBlacklist] = useState<BlacklistEntry[]>([]);
@@ -26,6 +26,8 @@ export default function AdminDashboard() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [txSearch, setTxSearch] = useState('');
   const [txSort, setTxSort] = useState<'newest' | 'oldest'>('newest');
+
+  const [pendingProfiles, setPendingProfiles] = useState<Profile[]>([]);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -44,6 +46,7 @@ export default function AdminDashboard() {
       setSettings(db.settings.get());
       setBlacklist(db.blacklist.getAll());
       setTransactions(db.transactions.getAll());
+      setPendingProfiles(db.profiles.getAll().filter(p => p.status === 'pending'));
       setIsLoading(false);
     }, 1500);
   }, [navigate]);
@@ -53,6 +56,29 @@ export default function AdminDashboard() {
     setIsSaving(true);
     db.settings.update(settings);
     setTimeout(() => setIsSaving(false), 800);
+  };
+
+  const handleQuotaChange = (vehicleType: string, field: keyof QuotaSettings, value: number) => {
+    setSettings(prev => ({
+      ...prev,
+      quotas: {
+        ...prev.quotas,
+        [vehicleType]: {
+          ...prev.quotas[vehicleType],
+          [field]: value
+        }
+      }
+    }));
+  };
+
+  const handleApprove = (id: string) => {
+    db.profiles.updateStatus(id, 'approved');
+    setPendingProfiles(db.profiles.getAll().filter(p => p.status === 'pending'));
+  };
+
+  const handleReject = (id: string) => {
+    db.profiles.updateStatus(id, 'rejected');
+    setPendingProfiles(db.profiles.getAll().filter(p => p.status === 'pending'));
   };
 
   const handleBlockVehicle = (e: React.FormEvent) => {
@@ -135,6 +161,19 @@ export default function AdminDashboard() {
               <Activity className="w-4 h-4 mr-2" />
               ট্রানজেকশন
             </Button>
+            <Button 
+              variant={activeTab === 'approvals' ? 'default' : 'outline'} 
+              onClick={() => setActiveTab('approvals')}
+              className="relative"
+            >
+              <Users className="w-4 h-4 mr-2" />
+              অনুমোদন
+              {pendingProfiles.length > 0 && (
+                <span className="absolute -top-2 -right-2 bg-danger text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  {pendingProfiles.length}
+                </span>
+              )}
+            </Button>
             <Button variant="outline" onClick={() => { localStorage.removeItem('user'); navigate('/'); }}>
               <LogOut className="w-4 h-4 mr-2" />
               লগআউট
@@ -153,24 +192,33 @@ export default function AdminDashboard() {
                 <CardDescription>পুরো জেলার জন্য নিয়ম নির্ধারণ করুন</CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleSaveSettings} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>সর্বোচ্চ টাকার সীমা (BDT Limit)</Label>
-                    <Input 
-                      type="number" 
-                      value={settings.bdt_limit}
-                      onChange={(e) => setSettings({...settings, bdt_limit: parseInt(e.target.value) || 0})}
-                    />
+                <form onSubmit={handleSaveSettings} className="space-y-6">
+                  <div className="space-y-4">
+                    <Label className="text-lg text-accent-cyan">যানবাহন ভিত্তিক কোটা</Label>
+                    {Object.entries(settings.quotas || {}).map(([vType, quota]) => (
+                      <div key={vType} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-xl bg-white/5 border border-white/10 items-center">
+                        <div className="font-medium text-white">{vType}</div>
+                        <div className="space-y-1">
+                          <Label className="text-xs text-text-dim">সর্বোচ্চ সীমা (BDT)</Label>
+                          <Input 
+                            type="number" 
+                            value={quota.bdt_limit}
+                            onChange={(e) => handleQuotaChange(vType, 'bdt_limit', parseInt(e.target.value) || 0)}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs text-text-dim">সময়সীমা (Days)</Label>
+                          <Input 
+                            type="number" 
+                            value={quota.day_gap}
+                            onChange={(e) => handleQuotaChange(vType, 'day_gap', parseInt(e.target.value) || 0)}
+                          />
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div className="space-y-2">
-                    <Label>সময়সীমা (Time Gap in Days)</Label>
-                    <Input 
-                      type="number" 
-                      value={settings.day_gap}
-                      onChange={(e) => setSettings({...settings, day_gap: parseInt(e.target.value) || 0})}
-                    />
-                  </div>
-                  <div className="space-y-2">
+                  
+                  <div className="space-y-2 pt-4 border-t border-white/10">
                     <Label>নোটিশ বোর্ডের লেখা (Marquee Text)</Label>
                     <textarea 
                       className="flex w-full rounded-xl glass-input px-4 py-3 text-sm outline-none min-h-[100px] resize-y"
@@ -262,6 +310,79 @@ export default function AdminDashboard() {
                     </div>
                   )}
                 </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {activeTab === 'approvals' && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Users className="w-5 h-5 mr-2 text-accent-cyan" />
+                  নতুন নিবন্ধনের অনুমোদন
+                </CardTitle>
+                <CardDescription>নাগরিকদের জমা দেওয়া তথ্য ও স্মার্ট কার্ড যাচাই করুন</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {pendingProfiles.length === 0 ? (
+                  <div className="text-center py-12 text-text-dim">
+                    <CheckCircle className="w-12 h-12 mx-auto mb-4 text-success/50" />
+                    <p>কোনো নতুন নিবন্ধন অনুমোদনের অপেক্ষায় নেই।</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-6">
+                    {pendingProfiles.map(profile => (
+                      <div key={profile.id} className="bg-white/5 border border-white/10 rounded-xl p-6 flex flex-col lg:flex-row gap-6">
+                        <div className="flex-1 space-y-4">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h3 className="text-xl font-bold text-white">{profile.full_name}</h3>
+                              <p className="text-accent-cyan font-medium">{profile.vehicle_no}</p>
+                            </div>
+                            <span className="bg-yellow-500/20 text-yellow-400 text-xs px-3 py-1 rounded-full border border-yellow-500/30">
+                              Pending
+                            </span>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div><span className="text-text-dim">মোবাইল:</span> <span className="text-white">{profile.mobile}</span></div>
+                            <div><span className="text-text-dim">যানের ধরন:</span> <span className="text-white">{profile.vehicle_type}</span></div>
+                            <div><span className="text-text-dim">ইঞ্জিন নং:</span> <span className="text-white">{profile.engine_no}</span></div>
+                            <div><span className="text-text-dim">চ্যাসিস নং:</span> <span className="text-white">{profile.chassis_no}</span></div>
+                            <div><span className="text-text-dim">পেশা:</span> <span className="text-white">{profile.profession}</span></div>
+                            <div><span className="text-text-dim">ঠিকানা:</span> <span className="text-white">{profile.address}</span></div>
+                          </div>
+
+                          <div className="flex gap-3 pt-4">
+                            <Button onClick={() => handleApprove(profile.id)} className="bg-success hover:bg-success/90 text-white">
+                              <CheckCircle className="w-4 h-4 mr-2" />
+                              অনুমোদন দিন
+                            </Button>
+                            <Button onClick={() => handleReject(profile.id)} variant="danger">
+                              <XCircle className="w-4 h-4 mr-2" />
+                              বাতিল করুন
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        <div className="w-full lg:w-1/3">
+                          <p className="text-sm text-text-dim mb-2">স্মার্ট কার্ডের ছবি:</p>
+                          {profile.smart_card_url ? (
+                            <div className="rounded-lg overflow-hidden border border-white/10 bg-black/50 aspect-video flex items-center justify-center">
+                              <img src={profile.smart_card_url} alt="Smart Card" className="max-w-full max-h-full object-contain" />
+                            </div>
+                          ) : (
+                            <div className="rounded-lg border border-white/10 border-dashed bg-white/5 aspect-video flex items-center justify-center text-text-dim text-sm">
+                              ছবি পাওয়া যায়নি
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </motion.div>

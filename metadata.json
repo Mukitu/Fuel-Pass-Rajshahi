@@ -1,6 +1,8 @@
 {
-  "name": "",
-  "description": "",
-  "requestFramePermissions": [],
+  "name": "Rajshahi Fuel Pass",
+  "description": "রাজশাহী জেলা প্রশাসনের ডিজিটাল ফুয়েল ম্যানেজমেন্ট সিস্টেম",
+  "requestFramePermissions": [
+    "camera"
+  ],
   "majorCapabilities": []
 }

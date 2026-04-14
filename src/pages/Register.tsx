@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { UserPlus, ArrowLeft, ShieldCheck, Droplet } from 'lucide-react';
+import { UserPlus, ArrowLeft, ShieldCheck, Droplet, CheckCircle2 } from 'lucide-react';
 import { Input } from '@/src/components/ui/Input';
 import { Button } from '@/src/components/ui/Button';
 import { Label } from '@/src/components/ui/Label';
@@ -11,6 +11,7 @@ export default function Register() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'citizen' | 'admin' | 'operator'>('citizen');
   const [step, setStep] = useState(1);
+  const [smartCardImage, setSmartCardImage] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     full_name: '',
     mobile: '',
@@ -34,6 +35,17 @@ export default function Register() {
   });
   const [error, setError] = useState('');
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSmartCardImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleVehicleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     // Remove all non-digit characters
     const rawValue = e.target.value.replace(/\D/g, '');
@@ -56,12 +68,25 @@ export default function Register() {
     if (activeTab === 'citizen') {
       const fullVehicleNo = `${formData.vehicle_zone}-${formData.vehicle_series}-${formData.vehicle_number}`;
 
+      if (!formData.engine_no || !formData.chassis_no || !smartCardImage) {
+        setError('দয়া করে ইঞ্জিন নম্বর, চ্যাসিস নম্বর এবং স্মার্ট কার্ডের ছবি প্রদান করুন।');
+        return;
+      }
+
       if (db.profiles.get(formData.mobile)) {
         setError('এই মোবাইল নম্বরটি ইতিমধ্যে নিবন্ধিত। (Mobile already registered)');
         return;
       }
       if (db.profiles.getByVehicle(fullVehicleNo)) {
         setError('এই গাড়ির নম্বরটি ইতিমধ্যে নিবন্ধিত। (Vehicle already registered)');
+        return;
+      }
+      if (db.profiles.getByEngine(formData.engine_no)) {
+        setError('এই ইঞ্জিন নম্বরটি ইতিমধ্যে নিবন্ধিত। (Engine number already registered)');
+        return;
+      }
+      if (db.profiles.getByChassis(formData.chassis_no)) {
+        setError('এই চ্যাসিস নম্বরটি ইতিমধ্যে নিবন্ধিত। (Chassis number already registered)');
         return;
       }
 
@@ -78,12 +103,14 @@ export default function Register() {
         profession: formData.profession,
         cc: formData.cc,
         address: formData.address,
-        role: 'owner'
+        smart_card_url: smartCardImage,
+        role: 'owner',
+        status: 'pending'
       };
 
       db.profiles.create(newProfile);
-      localStorage.setItem('user', JSON.stringify(newProfile));
-      navigate('/dashboard/owner');
+      alert('আপনার নিবন্ধন সফল হয়েছে! অ্যাডমিন অনুমোদনের পর আপনি লগইন করতে পারবেন।');
+      navigate('/login');
     } else if (activeTab === 'admin') {
       if (db.profiles.getByEmail(formData.email)) {
         setError('এই ইমেইলটি ইতিমধ্যে নিবন্ধিত। (Email already registered)');
@@ -307,13 +334,20 @@ export default function Register() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="vehicle_type">যানের বিবরণ</Label>
-                      <Input 
-                        id="vehicle_type" 
-                        placeholder="e.g. মোটরসাইকেল" 
+                      <select 
+                        id="vehicle_type"
+                        className="flex h-10 w-full rounded-xl glass-input px-3 py-2 text-sm outline-none appearance-none"
                         value={formData.vehicle_type}
                         onChange={(e) => setFormData({...formData, vehicle_type: e.target.value})}
                         required
-                      />
+                      >
+                        <option value="মোটরসাইকেল" className="bg-primary-blue">মোটরসাইকেল</option>
+                        <option value="প্রাইভেট কার" className="bg-primary-blue">প্রাইভেট কার</option>
+                        <option value="ট্রাক" className="bg-primary-blue">ট্রাক</option>
+                        <option value="বাস" className="bg-primary-blue">বাস</option>
+                        <option value="কোম্পানির ট্রাক" className="bg-primary-blue">কোম্পানির ট্রাক</option>
+                        <option value="প্রাইভেট অ্যাম্বুলেন্স" className="bg-primary-blue">প্রাইভেট অ্যাম্বুলেন্স</option>
+                      </select>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="color">রং (Color)</Label>
@@ -363,6 +397,22 @@ export default function Register() {
                       onChange={(e) => setFormData({...formData, chassis_no: e.target.value})}
                       required
                     />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>স্মার্ট কার্ডের ছবি আপলোড করুন (Upload Smart Card Image)</Label>
+                    <Input 
+                      type="file" 
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      required
+                      className="cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-accent-cyan file:text-primary-blue hover:file:bg-accent-cyan/80"
+                    />
+                    {smartCardImage && (
+                      <div className="mt-2 text-sm text-success flex items-center">
+                        <CheckCircle2 className="w-4 h-4 mr-1" /> ছবি আপলোড হয়েছে
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-2">
