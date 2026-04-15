@@ -149,9 +149,10 @@ export default function Register() {
         alert('আপনার পাম্প নিবন্ধন সফল হয়েছে! ডিসি স্যারের অনুমোদনের পর আপনি লগইন করতে পারবেন।');
         navigate('/login');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Registration error:', err);
-      setError('নিবন্ধন করার সময় একটি সমস্যা হয়েছে। দয়া করে আবার চেষ্টা করুন।');
+      const errorMessage = err.message || 'নিবন্ধন করার সময় একটি সমস্যা হয়েছে। দয়া করে আবার চেষ্টা করুন।';
+      setError(errorMessage);
     } finally {
       setIsRegistering(false);
     }

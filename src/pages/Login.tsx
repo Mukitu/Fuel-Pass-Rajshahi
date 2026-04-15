@@ -73,9 +73,10 @@ export default function Login() {
       if (user.role === 'admin') navigate('/dashboard/admin');
       else if (user.role === 'operator') navigate('/dashboard/operator');
       else navigate('/dashboard/owner');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Login error:', err);
-      setError('লগইন করার সময় একটি সমস্যা হয়েছে। দয়া করে আবার চেষ্টা করুন।');
+      const errorMessage = err.message || 'লগইন করার সময় একটি সমস্যা হয়েছে। দয়া করে আবার চেষ্টা করুন।';
+      setError(errorMessage);
     } finally {
       setIsLoggingIn(false);
     }
