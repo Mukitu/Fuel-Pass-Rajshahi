@@ -292,14 +292,14 @@ export default function OperatorDashboard() {
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-8 relative overflow-hidden">
+    <div className="min-h-screen p-3 md:p-8 relative overflow-hidden">
       <div className="max-w-3xl mx-auto space-y-6 relative z-10">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-white">SMARTRefill</h1>
-            <p className="text-text-dim">অপারেটর: {operator.full_name}</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-white">SMARTRefill</h1>
+            <p className="text-text-dim text-sm">অপারেটর: {operator.full_name}</p>
           </div>
-          <Button variant="outline" onClick={() => { localStorage.removeItem('user'); navigate('/'); }}>
+          <Button variant="outline" size="sm" onClick={() => { localStorage.removeItem('user'); navigate('/'); }} className="w-full md:w-auto">
             <LogOut className="w-4 h-4 mr-2" />
             লগআউট
           </Button>
@@ -307,27 +307,29 @@ export default function OperatorDashboard() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card className="md:col-span-2">
-            <CardHeader>
-              <CardTitle className="flex items-center">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center text-lg md:text-xl">
                 <ScanLine className="w-5 h-5 mr-2 text-accent-cyan" />
                 গাড়ি অনুসন্ধান (Vehicle Search)
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSearch} className="flex gap-4 mb-4">
+              <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3 mb-4">
                 <Input 
-                  placeholder="গাড়ির নম্বর লিখুন (e.g. RAJ-H-11-2233)" 
+                  placeholder="গাড়ির নম্বর লিখুন" 
                   value={searchVehicle}
                   onChange={(e) => setSearchVehicle(e.target.value)}
-                  className="flex-1 uppercase"
+                  className="flex-1 uppercase h-12"
                 />
-                <Button type="submit" disabled={isSearching}>
-                  <Search className="w-4 h-4 mr-2" />
-                  খুঁজুন
-                </Button>
-                <Button type="button" variant="outline" onClick={() => setShowScanner(!showScanner)}>
-                  <QrCode className="w-4 h-4" />
-                </Button>
+                <div className="flex gap-2">
+                  <Button type="submit" disabled={isSearching} className="flex-1 sm:flex-none h-12">
+                    <Search className="w-4 h-4 mr-2" />
+                    খুঁজুন
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => setShowScanner(!showScanner)} className="h-12 w-12 p-0">
+                    <QrCode className="w-5 h-5" />
+                  </Button>
+                </div>
               </form>
 
               <AnimatePresence>

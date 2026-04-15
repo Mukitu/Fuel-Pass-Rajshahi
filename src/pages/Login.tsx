@@ -83,10 +83,10 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden">
       {/* Background decorative elements */}
-      <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-accent-cyan/10 rounded-full blur-3xl" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-accent-cyan/10 rounded-full blur-3xl" />
+      <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-accent-cyan/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-accent-cyan/10 rounded-full blur-3xl pointer-events-none" />
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -102,40 +102,40 @@ export default function Login() {
           <span className="mr-2">←</span> ফিরে যান (Back)
         </Button>
 
-        <div className="text-center mb-8">
+        <div className="text-center mb-6 md:mb-8">
           <motion.div 
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: "spring", stiffness: 260, damping: 20, delay: 0.1 }}
-            className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-accent-cyan/10 border border-accent-cyan/30 mb-4"
+            className="inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 rounded-full bg-accent-cyan/10 border border-accent-cyan/30 mb-4"
           >
-            <Droplet className="w-10 h-10 text-accent-cyan" />
+            <Droplet className="w-8 h-8 md:w-10 md:h-10 text-accent-cyan" />
           </motion.div>
-          <h1 className="text-4xl font-bold text-accent-cyan mb-2">Fuel Pass</h1>
-          <p className="text-xl text-text-dim font-medium">রাজশাহী (Rajshahi)</p>
+          <h1 className="text-3xl md:text-4xl font-bold text-accent-cyan mb-1 md:mb-2">Fuel Pass</h1>
+          <p className="text-lg md:text-xl text-text-dim font-medium">রাজশাহী (Rajshahi)</p>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-center">লগইন করুন (Login)</CardTitle>
-            <CardDescription className="text-center">আপনার অ্যাকাউন্টের ধরন নির্বাচন করুন</CardDescription>
+        <Card className="border-glass-border">
+          <CardHeader className="pb-4 md:pb-6">
+            <CardTitle className="text-center text-xl md:text-2xl">লগইন করুন (Login)</CardTitle>
+            <CardDescription className="text-center text-sm">আপনার অ্যাকাউন্টের ধরন নির্বাচন করুন</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-2 mb-6 bg-white/5 p-1 rounded-xl">
+            <div className="flex gap-1 md:gap-2 mb-6 bg-white/5 p-1 rounded-xl">
               <button 
-                className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${activeTab === 'citizen' ? 'bg-accent-cyan text-primary-blue' : 'text-text-dim hover:text-white'}`}
+                className={`flex-1 py-2 text-xs md:text-sm font-medium rounded-lg transition-colors ${activeTab === 'citizen' ? 'bg-accent-cyan text-primary-blue' : 'text-text-dim hover:text-white'}`}
                 onClick={() => { setActiveTab('citizen'); setError(''); }}
               >
                 নাগরিক
               </button>
               <button 
-                className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${activeTab === 'operator' ? 'bg-accent-cyan text-primary-blue' : 'text-text-dim hover:text-white'}`}
+                className={`flex-1 py-2 text-xs md:text-sm font-medium rounded-lg transition-colors ${activeTab === 'operator' ? 'bg-accent-cyan text-primary-blue' : 'text-text-dim hover:text-white'}`}
                 onClick={() => { setActiveTab('operator'); setError(''); }}
               >
                 পাম্প
               </button>
               <button 
-                className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${activeTab === 'admin' ? 'bg-accent-cyan text-primary-blue' : 'text-text-dim hover:text-white'}`}
+                className={`flex-1 py-2 text-xs md:text-sm font-medium rounded-lg transition-colors ${activeTab === 'admin' ? 'bg-accent-cyan text-primary-blue' : 'text-text-dim hover:text-white'}`}
                 onClick={() => { setActiveTab('admin'); setError(''); }}
               >
                 অ্যাডমিন

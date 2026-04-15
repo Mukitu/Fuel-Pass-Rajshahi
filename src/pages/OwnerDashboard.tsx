@@ -173,16 +173,16 @@ export default function OwnerDashboard() {
   const needsSlotManagement = ['কোম্পানির ট্রাক', 'বাস', 'প্রাইভেট অ্যাম্বুলেন্স'].includes(user.vehicle_type || '');
 
   return (
-    <div className="min-h-screen p-4 md:p-8 relative overflow-hidden">
+    <div className="min-h-screen p-3 md:p-8 relative overflow-hidden">
       <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-accent-cyan/5 rounded-full blur-3xl pointer-events-none" />
       
       <div className="max-w-4xl mx-auto space-y-6 relative z-10">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-white">ড্যাশবোর্ড</h1>
-            <p className="text-text-dim">স্বাগতম, {user.full_name}</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-white">ড্যাশবোর্ড</h1>
+            <p className="text-text-dim text-sm">স্বাগতম, {user.full_name}</p>
           </div>
-          <Button variant="outline" onClick={handleLogout}>
+          <Button variant="outline" size="sm" onClick={handleLogout} className="w-full md:w-auto">
             <LogOut className="w-4 h-4 mr-2" />
             লগআউট
           </Button>
@@ -205,9 +205,9 @@ export default function OwnerDashboard() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-1 space-y-6">
-            <Card className="flex flex-col items-center justify-center p-8 text-center">
+            <Card className="flex flex-col items-center justify-center p-6 md:p-8 text-center">
               <motion.div 
-                className="bg-white p-4 rounded-2xl mb-4 shadow-lg"
+                className="bg-white p-3 md:p-4 rounded-2xl mb-4 shadow-lg"
                 animate={{ 
                   boxShadow: [
                     "0px 0px 0px rgba(100,255,218,0)", 
@@ -219,14 +219,15 @@ export default function OwnerDashboard() {
               >
                 <QRCodeSVG 
                   value={JSON.stringify({ v: user.vehicle_no, id: user.id })} 
-                  size={180}
+                  size={160}
                   level="H"
+                  className="w-full h-auto max-w-[160px]"
                 />
               </motion.div>
-              <p className="text-sm text-text-dim mt-2">পাম্পে স্ক্যান করার জন্য এই QR কোডটি দেখান</p>
+              <p className="text-xs md:text-sm text-text-dim mt-2">পাম্পে স্ক্যান করার জন্য এই QR কোডটি দেখান</p>
             </Card>
 
-            <Button onClick={downloadCard} className="w-full" size="lg" disabled={isDownloading}>
+            <Button onClick={downloadCard} className="w-full h-12" size="lg" disabled={isDownloading}>
               <Download className="w-5 h-5 mr-2" />
               {isDownloading ? 'ডাউনলোড হচ্ছে...' : 'ই-ফুয়েল কার্ড ডাউনলোড করুন'}
             </Button>
@@ -234,23 +235,24 @@ export default function OwnerDashboard() {
 
           <div className="md:col-span-2 space-y-6">
             {/* E-Fuel Card Hidden for Download, but visible in UI as a preview */}
-            <div id="fuel-card-preview" className="overflow-hidden rounded-2xl border border-glass-border bg-white text-black relative" ref={cardRef}>
-              {/* Card Header */}
-              <div className="bg-[#0A5C36] text-white p-4 flex justify-between items-center">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 border-2 border-white rounded-lg flex items-center justify-center">
-                    <Droplet className="w-6 h-6" />
+            <div className="overflow-x-auto pb-4 -mx-1 px-1">
+              <div id="fuel-card-preview" className="min-w-[500px] md:min-w-0 overflow-hidden rounded-2xl border border-glass-border bg-white text-black relative" ref={cardRef}>
+                {/* Card Header */}
+                <div className="bg-[#0A5C36] text-white p-4 flex justify-between items-center">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 border-2 border-white rounded-lg flex items-center justify-center">
+                      <Droplet className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] md:text-xs opacity-90 uppercase">ই-ফুয়েল কার্ড / E-FUEL CARD</p>
+                      <h2 className="text-lg md:text-xl font-bold">রাজশাহী জেলা প্রশাসন</h2>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs opacity-90">ই-ফুয়েল কার্ড / E-FUEL CARD</p>
-                    <h2 className="text-xl font-bold">রাজশাহী জেলা প্রশাসন</h2>
+                  <div className="text-right">
+                    <p className="text-[10px] md:text-xs opacity-90 uppercase">কার্ড নং / Card No.</p>
+                    <p className="font-bold text-sm md:text-base">{user.id.split('-')[1]?.substring(0,8).toUpperCase() || 'N/A'}</p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-xs opacity-90">কার্ড নং / Card No.</p>
-                  <p className="font-bold">{user.id.split('-')[1]?.substring(0,8).toUpperCase() || 'N/A'}</p>
-                </div>
-              </div>
 
               {/* Card Body */}
               <div className="p-6 relative">
@@ -332,8 +334,9 @@ export default function OwnerDashboard() {
                 <p>রাজশাহী.ফুয়েল</p>
               </div>
             </div>
+          </div>
 
-            {needsSlotManagement && (
+          {needsSlotManagement && (
               <Card className="border-accent-cyan/30 bg-accent-cyan/5">
                 <CardHeader>
                   <CardTitle className="text-xl flex items-center text-accent-cyan">

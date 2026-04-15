@@ -159,9 +159,9 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 lg:p-8 relative overflow-hidden">
-      <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-accent-cyan/10 rounded-full blur-3xl" />
-      <div className="absolute bottom-[-10%] left-[-10%] w-96 h-96 bg-accent-cyan/10 rounded-full blur-3xl" />
+    <div className="min-h-screen flex items-center justify-center p-3 md:p-4 lg:p-8 relative overflow-hidden">
+      <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-accent-cyan/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-[-10%] left-[-10%] w-96 h-96 bg-accent-cyan/10 rounded-full blur-3xl pointer-events-none" />
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -172,31 +172,31 @@ export default function Register() {
         <Button 
           variant="ghost" 
           className="mb-4 pl-0 text-text-dim hover:text-white" 
-          onClick={() => navigate('/')}
+          onClick={() => step > 1 ? setStep(step - 1) : navigate('/')}
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
-          ফিরে যান (Back)
+          {step > 1 ? 'আগের ধাপ (Back)' : 'ফিরে যান (Back)'}
         </Button>
 
         <div className="grid grid-cols-1 lg:grid-cols-5 glass-panel overflow-hidden border border-glass-border">
           
           {/* Left Side - Branding & Info */}
-          <div className="lg:col-span-2 bg-gradient-to-br from-primary-blue to-primary-blue/50 p-8 lg:p-12 flex flex-col justify-center relative border-r border-glass-border">
+          <div className="lg:col-span-2 bg-gradient-to-br from-primary-blue to-primary-blue/50 p-6 md:p-8 lg:p-12 flex flex-col justify-center relative border-b lg:border-b-0 lg:border-r border-glass-border">
             <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 pointer-events-none"></div>
             
-            <div className="flex items-center gap-3 mb-8">
-              <div className="w-12 h-12 rounded-full bg-accent-cyan/20 border border-accent-cyan/50 flex items-center justify-center">
-                <Droplet className="w-6 h-6 text-accent-cyan" />
+            <div className="flex items-center gap-3 mb-6 md:mb-8">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-accent-cyan/20 border border-accent-cyan/50 flex items-center justify-center">
+                <Droplet className="w-5 h-5 md:w-6 md:h-6 text-accent-cyan" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white tracking-wide">FuelPass <span className="text-danger">BD</span></h1>
+                <h1 className="text-xl md:text-2xl font-bold text-white tracking-wide">FuelPass <span className="text-danger">BD</span></h1>
               </div>
             </div>
 
-            <h2 className="text-3xl lg:text-4xl font-bold text-accent-cyan mb-4 leading-tight">
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-accent-cyan mb-4 leading-tight">
               জ্বালানি বিতরণ ব্যবস্থাপনা সিস্টেম
             </h2>
-            <p className="text-text-dim text-lg mb-12">
+            <p className="text-text-dim text-base md:text-lg mb-8 md:mb-12">
               এনক্রিপ্টেড QR পরিচয় ও কোটা ট্র্যাকিংসহ নিরাপদ এবং স্বচ্ছ জ্বালানি বিতরণ।
             </p>
 
@@ -212,26 +212,42 @@ export default function Register() {
           </div>
 
           {/* Right Side - Form */}
-          <div className="lg:col-span-3 p-8 lg:p-12 bg-black/20 backdrop-blur-md overflow-y-auto max-h-[90vh]">
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-white mb-2">নিবন্ধন করুন</h2>
-              <p className="text-text-dim">আপনার অ্যাকাউন্টের ধরন নির্বাচন করুন</p>
+          <div className="lg:col-span-3 p-6 md:p-8 lg:p-12 bg-black/20 backdrop-blur-md overflow-y-auto max-h-[90vh]">
+            <div className="text-center mb-6 md:mb-8">
+              <h2 className="text-xl md:text-2xl font-bold text-white mb-2">নিবন্ধন করুন</h2>
+              <p className="text-sm md:text-base text-text-dim">আপনার অ্যাকাউন্টের ধরন নির্বাচন করুন</p>
             </div>
 
-            <div className="flex gap-2 mb-8 bg-white/5 p-1 rounded-xl">
+            <div className="flex gap-1 md:gap-2 mb-6 md:mb-8 bg-white/5 p-1 rounded-xl">
               <button 
-                className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${activeTab === 'citizen' ? 'bg-accent-cyan text-primary-blue' : 'text-text-dim hover:text-white'}`}
+                className={`flex-1 py-2 text-xs md:text-sm font-medium rounded-lg transition-colors ${activeTab === 'citizen' ? 'bg-accent-cyan text-primary-blue' : 'text-text-dim hover:text-white'}`}
                 onClick={() => { setActiveTab('citizen'); setStep(1); setError(''); }}
               >
                 নাগরিক
               </button>
               <button 
-                className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${activeTab === 'operator' ? 'bg-accent-cyan text-primary-blue' : 'text-text-dim hover:text-white'}`}
+                className={`flex-1 py-2 text-xs md:text-sm font-medium rounded-lg transition-colors ${activeTab === 'operator' ? 'bg-accent-cyan text-primary-blue' : 'text-text-dim hover:text-white'}`}
                 onClick={() => { setActiveTab('operator'); setError(''); }}
               >
                 পাম্প অপারেটর
               </button>
             </div>
+
+            {/* Step Indicator */}
+            {activeTab === 'citizen' && (
+              <div className="flex justify-between mb-8 md:mb-10 px-2 md:px-4 max-w-md mx-auto">
+                {[1, 2, 3].map((s) => (
+                  <div key={s} className="flex flex-col items-center gap-2">
+                    <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center text-sm md:text-base font-bold transition-all ${step >= s ? 'bg-accent-cyan text-primary-blue' : 'bg-white/10 text-text-dim border border-white/10'}`}>
+                      {s}
+                    </div>
+                    <span className={`text-[10px] md:text-xs ${step >= s ? 'text-accent-cyan' : 'text-text-dim'}`}>
+                      {s === 1 ? 'ব্যক্তিগত' : s === 2 ? 'গাড়ি' : 'নিরাপত্তা'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <form onSubmit={handleRegister} className="space-y-6 max-w-md mx-auto">
               {activeTab === 'citizen' && step === 1 && (

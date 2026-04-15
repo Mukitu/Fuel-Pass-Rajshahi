@@ -34,63 +34,63 @@ export default function Landing() {
       <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-accent-cyan/5 rounded-full blur-[100px] pointer-events-none" />
 
       {/* Header / Navbar */}
-      <header className="w-full p-6 flex justify-between items-center z-10">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-accent-cyan/20 border border-accent-cyan/50 flex items-center justify-center">
-            <Droplet className="w-5 h-5 text-accent-cyan" />
+      <header className="w-full p-4 md:p-6 flex justify-between items-center z-10">
+        <div className="flex items-center gap-2 md:gap-3">
+          <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-accent-cyan/20 border border-accent-cyan/50 flex items-center justify-center">
+            <Droplet className="w-4 h-4 md:w-5 md:h-5 text-accent-cyan" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-white tracking-wide">ফুয়েল পাশ</h1>
-            <p className="text-xs text-accent-cyan uppercase tracking-widest">রাজশাহী</p>
+            <h1 className="text-lg md:text-xl font-bold text-white tracking-wide">ফুয়েল পাশ</h1>
+            <p className="text-[10px] md:text-xs text-accent-cyan uppercase tracking-widest">রাজশাহী</p>
           </div>
         </div>
-        <div className="flex gap-4">
-          <Button variant="ghost" onClick={() => navigate('/login')}>
+        <div className="flex gap-2 md:gap-4">
+          <Button variant="ghost" size="sm" onClick={() => navigate('/login')} className="text-xs md:text-sm">
             লগইন
           </Button>
-          <Button onClick={() => navigate('/register')}>
-            রেজিস্ট্রেশন
+          <Button size="sm" onClick={() => navigate('/register')} className="text-xs md:text-sm">
+            নিবন্ধন
           </Button>
         </div>
       </header>
 
       {/* Main Hero Section */}
-      <main className="flex-1 flex flex-col items-center justify-center p-6 z-10 text-center">
+      <main className="flex-1 flex flex-col items-center justify-center p-4 md:p-6 z-10 text-center">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
           className="max-w-3xl mx-auto"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent-cyan/10 border border-accent-cyan/30 text-accent-cyan text-sm font-medium mb-8">
-            <ShieldCheck className="w-4 h-4" />
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-accent-cyan/10 border border-accent-cyan/30 text-accent-cyan text-[10px] md:text-sm font-medium mb-6 md:mb-8">
+            <ShieldCheck className="w-3 h-3 md:w-4 md:h-4" />
             রাজশাহী জেলা প্রশাসন
           </div>
           
-          <h2 className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">
-            ডিজিটাল ফুয়েল <br/>
+          <h2 className="text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-4 md:mb-6 leading-tight">
+            ডিজিটাল ফুয়েল <br className="hidden sm:block"/>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-cyan to-blue-400">
               ম্যানেজমেন্ট সিস্টেম
             </span>
           </h2>
           
-          <p className="text-lg text-text-dim mb-12 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-sm md:text-lg text-text-dim mb-8 md:mb-12 max-w-2xl mx-auto leading-relaxed px-4">
             রাজশাহী জেলা প্রশাসনের উদ্যোগে ডিজিটাল পদ্ধতিতে তেল বিতরণ কার্যক্রম। 
             নিরাপদ, স্বচ্ছ এবং কোটা-ভিত্তিক জ্বালানি ব্যবস্থাপনা।
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-6 justify-center">
-            <Button size="lg" onClick={() => navigate('/login')} className="text-lg px-8">
+          <div className="flex flex-col sm:flex-row gap-3 md:gap-6 justify-center px-4">
+            <Button size="lg" onClick={() => navigate('/login')} className="text-base md:text-lg px-6 md:px-8 h-12 md:h-14">
               <LogIn className="w-5 h-5 mr-2" />
               লগইন করুন
             </Button>
-            <Button size="lg" variant="outline" onClick={() => navigate('/register')} className="text-lg px-8">
+            <Button size="lg" variant="outline" onClick={() => navigate('/register')} className="text-base md:text-lg px-6 md:px-8 h-12 md:h-14">
               <Car className="w-5 h-5 mr-2" />
-              গাড়ি রেজিস্ট্রেশন করুন
+              গাড়ি নিবন্ধন
             </Button>
             <Button size="lg" variant="outline" onClick={() => {
               document.getElementById('pumps-section')?.scrollIntoView({ behavior: 'smooth' });
-            }} className="text-lg px-8 border-accent-cyan text-accent-cyan hover:bg-accent-cyan/10">
+            }} className="text-base md:text-lg px-6 md:px-8 h-12 md:h-14 border-accent-cyan text-accent-cyan hover:bg-accent-cyan/10">
               <Droplet className="w-5 h-5 mr-2" />
               পাম্প দেখুন
             </Button>

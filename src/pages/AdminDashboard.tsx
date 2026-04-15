@@ -239,17 +239,19 @@ export default function AdminDashboard() {
   if (!admin) return null;
 
   return (
-    <div className="min-h-screen p-4 md:p-8 relative overflow-hidden">
+    <div className="min-h-screen p-3 md:p-8 relative overflow-hidden">
       <div className="max-w-5xl mx-auto space-y-6 relative z-10">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-white">DC Office Control</h1>
-            <p className="text-text-dim">অ্যাডমিন প্যানেল</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-white">DC Office Control</h1>
+            <p className="text-text-dim text-sm">অ্যাডমিন প্যানেল</p>
           </div>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-2 w-full md:w-auto">
             <Button 
               variant={activeTab === 'settings' ? 'default' : 'outline'} 
               onClick={() => setActiveTab('settings')}
+              size="sm"
+              className="flex-1 md:flex-none"
             >
               <Settings className="w-4 h-4 mr-2" />
               সেটিংস
@@ -257,6 +259,8 @@ export default function AdminDashboard() {
             <Button 
               variant={activeTab === 'transactions' ? 'default' : 'outline'} 
               onClick={() => setActiveTab('transactions')}
+              size="sm"
+              className="flex-1 md:flex-none"
             >
               <Activity className="w-4 h-4 mr-2" />
               ট্রানজেকশন
@@ -264,12 +268,13 @@ export default function AdminDashboard() {
             <Button 
               variant={activeTab === 'approvals' ? 'default' : 'outline'} 
               onClick={() => setActiveTab('approvals')}
-              className="relative"
+              size="sm"
+              className="relative flex-1 md:flex-none"
             >
               <Users className="w-4 h-4 mr-2" />
               অনুমোদন
               {pendingProfiles.length > 0 && (
-                <span className="absolute -top-2 -right-2 bg-danger text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 bg-danger text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
                   {pendingProfiles.length}
                 </span>
               )}
@@ -277,6 +282,8 @@ export default function AdminDashboard() {
             <Button 
               variant={activeTab === 'pumps' ? 'default' : 'outline'} 
               onClick={() => setActiveTab('pumps')}
+              size="sm"
+              className="flex-1 md:flex-none"
             >
               <Droplet className="w-4 h-4 mr-2" />
               পাম্পসমূহ
@@ -284,11 +291,13 @@ export default function AdminDashboard() {
             <Button 
               variant={activeTab === 'users' ? 'default' : 'outline'} 
               onClick={() => setActiveTab('users')}
+              size="sm"
+              className="flex-1 md:flex-none"
             >
               <Users className="w-4 h-4 mr-2" />
-              ইউজার ম্যানেজমেন্ট
+              ইউজার
             </Button>
-            <Button variant="outline" onClick={() => { localStorage.removeItem('user'); navigate('/'); }}>
+            <Button variant="outline" size="sm" onClick={() => { localStorage.removeItem('user'); navigate('/'); }} className="flex-1 md:flex-none">
               <LogOut className="w-4 h-4 mr-2" />
               লগআউট
             </Button>
@@ -645,7 +654,7 @@ export default function AdminDashboard() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto hidden md:block">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="border-b border-white/10 text-text-dim text-sm">
@@ -659,7 +668,7 @@ export default function AdminDashboard() {
                     <tbody>
                       {filteredTransactions.length === 0 ? (
                         <tr>
-                          <td colSpan={4} className="py-8 text-center text-text-dim">কোনো ট্রানজেকশন পাওয়া যায়নি।</td>
+                          <td colSpan={5} className="py-8 text-center text-text-dim">কোনো ট্রানজেকশন পাওয়া যায়নি।</td>
                         </tr>
                       ) : (
                         filteredTransactions.map((tx) => (
@@ -680,6 +689,37 @@ export default function AdminDashboard() {
                       )}
                     </tbody>
                   </table>
+                </div>
+
+                {/* Mobile View for Transactions */}
+                <div className="md:hidden space-y-4">
+                  {filteredTransactions.length === 0 ? (
+                    <p className="py-8 text-center text-text-dim">কোনো ট্রানজেকশন পাওয়া যায়নি।</p>
+                  ) : (
+                    filteredTransactions.map((tx) => (
+                      <div key={tx.id} className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="text-xs text-text-dim">{new Date(tx.created_at).toLocaleString('bn-BD')}</p>
+                            <p className="font-bold text-accent-cyan text-lg">{tx.vehicle_no}</p>
+                          </div>
+                          <Button variant="ghost" size="sm" className="text-danger hover:bg-danger/20 h-8 w-8 p-0" onClick={() => handleDeleteTransaction(tx.id)}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        <div className="flex justify-between items-end">
+                          <div>
+                            <p className="text-xs text-text-dim mb-1">পাম্প অপারেটর</p>
+                            <p className="text-sm text-white">{tx.pump_id}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-text-dim mb-1">পরিমাণ</p>
+                            <p className="text-lg font-bold text-white">৳ {tx.amount_bdt}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -710,7 +750,7 @@ export default function AdminDashboard() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto hidden md:block">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="border-b border-white/10 text-text-dim text-sm">
@@ -770,6 +810,49 @@ export default function AdminDashboard() {
                       )}
                     </tbody>
                   </table>
+                </div>
+
+                {/* Mobile View for Users */}
+                <div className="md:hidden space-y-4">
+                  {filteredUsers.length === 0 ? (
+                    <p className="py-8 text-center text-text-dim">কোনো ইউজার পাওয়া যায়নি।</p>
+                  ) : (
+                    filteredUsers.map((u) => (
+                      <div key={u.id} className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="font-bold text-white text-lg">{u.full_name}</p>
+                            <p className="text-xs text-accent-cyan uppercase">{u.role}</p>
+                          </div>
+                          <div className="flex gap-2">
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full border h-fit ${u.is_approved ? 'bg-success/10 text-success border-success/20' : 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'}`}>
+                              {u.is_approved ? 'Approved' : 'Pending'}
+                            </span>
+                            <Button variant="ghost" size="sm" className="text-danger hover:bg-danger/20 h-8 w-8 p-0" onClick={() => handleDeleteUser(u.id)}>
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 pt-2 border-t border-white/5">
+                          <div>
+                            <p className="text-[10px] text-text-dim mb-1">যোগাযোগ</p>
+                            <p className="text-xs text-white">{u.mobile}</p>
+                            {u.email && <p className="text-[10px] text-text-dim truncate">{u.email}</p>}
+                          </div>
+                          <div className="text-right">
+                            <p className="text-[10px] text-text-dim mb-1">তথ্য</p>
+                            {u.role === 'owner' ? (
+                              <p className="text-xs text-white">{u.vehicle_no}</p>
+                            ) : u.role === 'operator' ? (
+                              <p className="text-xs text-white truncate">{u.pump_name}</p>
+                            ) : (
+                              <p className="text-xs text-text-dim">-</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
