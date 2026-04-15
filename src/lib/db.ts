@@ -59,7 +59,22 @@ export interface Transaction {
 }
 
 // Initial Mock Data
-let profiles: Profile[] = [
+const loadFromStorage = (key: string, defaultValue: any) => {
+  try {
+    const stored = localStorage.getItem(`fuelpass_${key}`);
+    return stored ? JSON.parse(stored) : defaultValue;
+  } catch (e) {
+    return defaultValue;
+  }
+};
+
+const saveToStorage = (key: string, value: any) => {
+  try {
+    localStorage.setItem(`fuelpass_${key}`, JSON.stringify(value));
+  } catch (e) {}
+};
+
+let profiles: Profile[] = loadFromStorage('profiles', [
   { id: 'admin-1', full_name: 'DC Admin', mobile: '01303595062', email: 'mukituislamnishat@gmail.com', password: '2244172129@Nishat', role: 'admin', status: 'approved' },
   { id: 'op-1', full_name: 'Pump Operator 1', mobile: '01800000000', pump_name: 'Rajshahi Filling Station', location: 'সাহেব বাজার, রাজশাহী', password: 'pump', role: 'operator', status: 'approved', is_open: true },
   { 
@@ -78,9 +93,9 @@ let profiles: Profile[] = [
     role: 'owner',
     status: 'approved'
   },
-];
+]);
 
-let globalSettings: GlobalSettings = {
+let globalSettings: GlobalSettings = loadFromStorage('settings', {
   quotas: {
     'মোটরসাইকেল': { bdt_limit: 500, day_gap: 3 },
     'প্রাইভেট কার': { bdt_limit: 3000, day_gap: 7 },
@@ -91,7 +106,7 @@ let globalSettings: GlobalSettings = {
   },
   marquee_text: "রাজশাহী জেলা প্রশাসনের ডিজিটাল ফুয়েল ম্যানেজমেন্ট সিস্টেমে আপনাকে স্বাগতম। প্রতিটি পাম্পে QR কোড স্ক্যান করে তেল নিন। নির্ধারিত কোটার বেশি তেল নেওয়া যাবে না। সকল গাড়ি রেজিস্ট্রেশন বাধ্যতামূলক।",
   auto_penalty_days: 7,
-};
+});
 
 export const VEHICLE_ZONES = [
   'ঢাকা মেট্রো', 'রাজশাহী মেট্রো', 'চট্টগ্রাম মেট্রো', 'খুলনা মেট্রো', 
@@ -105,13 +120,13 @@ export const VEHICLE_SERIES = [
   'প', 'ফ', 'ব', 'ভ', 'ম', 'য', 'র', 'ল', 'শ', 'স', 'হ', 'অ', 'আ', 'ই', 'উ', 'এ'
 ];
 
-let blacklist: BlacklistEntry[] = [
+let blacklist: BlacklistEntry[] = loadFromStorage('blacklist', [
   { vehicle_no: 'RAJ-H-99-8877', blocked_until: new Date(Date.now() + 86400000 * 3).toISOString(), reason: 'Rule Violation' }
-];
+]);
 
-let transactions: Transaction[] = [
+let transactions: Transaction[] = loadFromStorage('transactions', [
   { id: 'tx-1', vehicle_no: 'RAJ-H-11-2233', amount_bdt: 1500, pump_id: 'op-1', created_at: new Date(Date.now() - 86400000 * 6).toISOString() } // 6 days ago
-];
+]);
 
 export const db = {
   profiles: {
@@ -124,33 +139,42 @@ export const db = {
     create: (profile: Profile) => { 
       if (profile.role === 'operator') profile.is_open = true;
       profiles.push(profile); 
+      saveToStorage('profiles', profiles);
       return profile; 
     },
     updateStatus: (id: string, status: 'approved' | 'rejected') => {
       const index = profiles.findIndex(p => p.id === id);
       if (index !== -1) {
         profiles[index].status = status;
+        saveToStorage('profiles', profiles);
       }
     },
     update: (id: string, updates: Partial<Profile>) => {
       const index = profiles.findIndex(p => p.id === id);
       if (index !== -1) {
         profiles[index] = { ...profiles[index], ...updates };
+        saveToStorage('profiles', profiles);
       }
     },
     delete: (id: string) => {
       profiles = profiles.filter(p => p.id !== id);
+      saveToStorage('profiles', profiles);
     },
     togglePumpStatus: (id: string, isOpen: boolean) => {
       const index = profiles.findIndex(p => p.id === id);
       if (index !== -1) {
         profiles[index].is_open = isOpen;
+        saveToStorage('profiles', profiles);
       }
     }
   },
   settings: {
     get: () => ({ ...globalSettings }),
-    update: (settings: Partial<GlobalSettings>) => { globalSettings = { ...globalSettings, ...settings }; return globalSettings; }
+    update: (settings: Partial<GlobalSettings>) => { 
+      globalSettings = { ...globalSettings, ...settings }; 
+      saveToStorage('settings', globalSettings);
+      return globalSettings; 
+    }
   },
   blacklist: {
     getAll: () => [...blacklist],
@@ -158,8 +182,12 @@ export const db = {
     add: (entry: BlacklistEntry) => { 
       blacklist = blacklist.filter(b => b.vehicle_no !== entry.vehicle_no);
       blacklist.push(entry); 
+      saveToStorage('blacklist', blacklist);
     },
-    remove: (vehicle_no: string) => { blacklist = blacklist.filter(b => b.vehicle_no !== vehicle_no); }
+    remove: (vehicle_no: string) => { 
+      blacklist = blacklist.filter(b => b.vehicle_no !== vehicle_no); 
+      saveToStorage('blacklist', blacklist);
+    }
   },
   transactions: {
     getAll: () => [...transactions],
@@ -167,10 +195,12 @@ export const db = {
     add: (tx: Omit<Transaction, 'id' | 'created_at'>) => {
       const newTx = { ...tx, id: `tx-${Date.now()}`, created_at: new Date().toISOString() };
       transactions.push(newTx);
+      saveToStorage('transactions', transactions);
       return newTx;
     },
     delete: (id: string) => {
       transactions = transactions.filter(t => t.id !== id);
+      saveToStorage('transactions', transactions);
     }
   }
 };
