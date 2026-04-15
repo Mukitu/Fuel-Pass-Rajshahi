@@ -15,6 +15,7 @@ export default function OperatorDashboard() {
   const [operator, setOperator] = useState<Profile | null>(null);
   const [settings, setSettings] = useState<GlobalSettings | null>(null);
   const [todaysTransactions, setTodaysTransactions] = useState<Transaction[]>([]);
+  const [transactionOwners, setTransactionOwners] = useState<Record<string, Profile>>({});
   const [isLoading, setIsLoading] = useState(true);
   
   const [searchVehicle, setSearchVehicle] = useState('');
@@ -29,43 +30,60 @@ export default function OperatorDashboard() {
   const [txSuccess, setTxSuccess] = useState(false);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (!storedUser) {
-      navigate('/');
-      return;
-    }
-    const parsedUser = JSON.parse(storedUser) as Profile;
-    if (parsedUser.role !== 'operator') {
-      navigate('/');
-      return;
-    }
-    
-    setTimeout(() => {
-      setOperator(parsedUser);
-      setSettings(db.settings.get());
+    const init = async () => {
+      const storedUser = localStorage.getItem('user');
+      if (!storedUser) {
+        navigate('/');
+        return;
+      }
+      const parsedUser = JSON.parse(storedUser) as Profile;
+      if (parsedUser.role !== 'operator') {
+        navigate('/');
+        return;
+      }
       
-      // Load today's transactions for this pump
-      const allTxs = db.transactions.getAll();
-      const todayStr = new Date().toISOString().split('T')[0];
-      const todays = allTxs.filter(tx => 
-        tx.pump_id === parsedUser.id && 
-        tx.created_at.startsWith(todayStr)
-      );
-      setTodaysTransactions(todays);
-      
-      setIsLoading(false);
-    }, 1000);
+      try {
+        const [fetchedSettings, allTxs, allProfiles] = await Promise.all([
+          db.settings.get(),
+          db.transactions.getAll(),
+          db.profiles.getAll()
+        ]);
+        
+        setOperator(parsedUser);
+        setSettings(fetchedSettings);
+        
+        const todayStr = new Date().toISOString().split('T')[0];
+        const todays = allTxs.filter(tx => 
+          tx.pump_id === parsedUser.id && 
+          tx.created_at.startsWith(todayStr)
+        );
+        setTodaysTransactions(todays);
+
+        // Create a map of vehicle_no to profile for quick lookup
+        const ownerMap: Record<string, Profile> = {};
+        allProfiles.forEach(p => {
+          if (p.vehicle_no) ownerMap[p.vehicle_no] = p;
+        });
+        setTransactionOwners(ownerMap);
+      } catch (err) {
+        console.error('Error initializing operator dashboard:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    init();
   }, [navigate]);
 
-  const executeSearch = (vehicleNo: string) => {
+  const executeSearch = async (vehicleNo: string) => {
     setIsSearching(true);
     setTxSuccess(false);
     setAmount('');
     setValidationStatus('idle');
     setValidationMessage('');
     
-    setTimeout(() => {
-      const vehicle = db.profiles.getByVehicle(vehicleNo.toUpperCase());
+    try {
+      const vehicle = await db.profiles.getByVehicle(vehicleNo.toUpperCase());
       if (!vehicle) {
         setValidationStatus('not_found');
         setValidationMessage('দুঃখিত, এই গাড়িটি নিবন্ধিত নয়। (Vehicle not registered)');
@@ -75,9 +93,14 @@ export default function OperatorDashboard() {
       }
 
       setScannedVehicle(vehicle);
-      validateVehicle(vehicle);
+      await validateVehicle(vehicle);
+    } catch (err) {
+      console.error('Error searching vehicle:', err);
+      setValidationStatus('not_found');
+      setValidationMessage('গাড়িটি খোঁজার সময় একটি সমস্যা হয়েছে।');
+    } finally {
       setIsSearching(false);
-    }, 800);
+    }
   };
 
   const handleSearch = (e?: React.FormEvent) => {
@@ -102,7 +125,7 @@ export default function OperatorDashboard() {
     }
   };
 
-  const validateVehicle = (vehicle: Profile) => {
+  const validateVehicle = async (vehicle: Profile) => {
     if (!settings || !operator) return;
 
     // 0. Check if pump is open
@@ -120,7 +143,7 @@ export default function OperatorDashboard() {
     }
 
     // 2. Check Blacklist
-    const blacklistEntry = db.blacklist.get(vehicle.vehicle_no!);
+    const blacklistEntry = await db.blacklist.get(vehicle.vehicle_no!);
     if (blacklistEntry && new Date(blacklistEntry.blocked_until) > new Date()) {
       setValidationStatus('blocked');
       setValidationMessage(`দুঃখিত, এই গাড়িটি ব্লক করা হয়েছে। কারণ: ${blacklistEntry.reason}`);
@@ -130,7 +153,7 @@ export default function OperatorDashboard() {
     const vehicleQuota = settings.quotas[vehicle.vehicle_type || ''] || { bdt_limit: 0, day_gap: 0 };
 
     // 3. Check Time Gap
-    const txs = db.transactions.getByVehicle(vehicle.vehicle_no!);
+    const txs = await db.transactions.getByVehicle(vehicle.vehicle_no!);
     if (txs.length > 0) {
       const lastTxDate = new Date(txs[0].created_at);
       const nextRefillDate = new Date(lastTxDate.getTime() + vehicleQuota.day_gap * 24 * 60 * 60 * 1000);
@@ -140,7 +163,7 @@ export default function OperatorDashboard() {
         if (penaltyDays > 0) {
           const blockedUntil = new Date();
           blockedUntil.setDate(blockedUntil.getDate() + penaltyDays);
-          db.blacklist.add({
+          await db.blacklist.add({
             vehicle_no: vehicle.vehicle_no!,
             blocked_until: blockedUntil.toISOString(),
             reason: 'নির্ধারিত সময়ের আগে তেল নেওয়ার চেষ্টা (Quota Violation)'
@@ -159,7 +182,7 @@ export default function OperatorDashboard() {
     setValidationMessage('গাড়িটি জ্বালানি নেওয়ার জন্য উপযুক্ত।');
   };
 
-  const handleTransaction = (e: React.FormEvent) => {
+  const handleTransaction = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!scannedVehicle || !operator || validationStatus !== 'valid' || !settings) return;
 
@@ -170,21 +193,26 @@ export default function OperatorDashboard() {
       return;
     }
 
-    const newTx = db.transactions.add({
-      vehicle_no: scannedVehicle.vehicle_no!,
-      amount_bdt: numAmount,
-      pump_id: operator.id
-    });
+    try {
+      const newTx = await db.transactions.add({
+        vehicle_no: scannedVehicle.vehicle_no!,
+        amount_bdt: numAmount,
+        pump_id: operator.id
+      });
 
-    setTodaysTransactions(prev => [newTx, ...prev]);
-    setTxSuccess(true);
-    setTimeout(() => {
-      setSearchVehicle('');
-      setScannedVehicle(null);
-      setValidationStatus('idle');
-      setTxSuccess(false);
-      setAmount('');
-    }, 3000);
+      setTodaysTransactions(prev => [newTx, ...prev]);
+      setTxSuccess(true);
+      setTimeout(() => {
+        setSearchVehicle('');
+        setScannedVehicle(null);
+        setValidationStatus('idle');
+        setTxSuccess(false);
+        setAmount('');
+      }, 3000);
+    } catch (err) {
+      console.error('Error processing transaction:', err);
+      alert('লেনদেন সম্পন্ন করার সময় একটি সমস্যা হয়েছে।');
+    }
   };
 
   if (isLoading) {
@@ -330,7 +358,7 @@ export default function OperatorDashboard() {
                           handleScan(result[0].rawValue);
                         }
                       }}
-                      components={{ audio: false, finder: false }}
+                      components={{ finder: false }}
                     />
                     <div className="p-2 bg-black/50 text-center text-xs text-text-dim">
                       QR কোডটি ক্যামেরার সামনে ধরুন
@@ -451,7 +479,7 @@ export default function OperatorDashboard() {
                     </thead>
                     <tbody>
                       {todaysTransactions.map((tx) => {
-                        const v = db.profiles.getByVehicle(tx.vehicle_no);
+                        const v = transactionOwners[tx.vehicle_no];
                         return (
                           <tr key={tx.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                             <td className="px-4 py-3">{new Date(tx.created_at).toLocaleTimeString('bn-BD')}</td>

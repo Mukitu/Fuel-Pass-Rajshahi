@@ -20,30 +20,38 @@ export default function OwnerDashboard() {
   const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (!storedUser) {
-      navigate('/');
-      return;
-    }
-    const parsedUser = JSON.parse(storedUser) as Profile;
-    if (parsedUser.role !== 'owner') {
-      navigate('/');
-      return;
-    }
-    
-    // Simulate network delay for shimmer effect
-    setTimeout(() => {
-      setUser(parsedUser);
-      setSettings(db.settings.get());
-      
-      if (parsedUser.vehicle_no) {
-        setBlacklistStatus(db.blacklist.get(parsedUser.vehicle_no));
-        const txs = db.transactions.getByVehicle(parsedUser.vehicle_no);
-        setTransactions(txs);
-        if (txs.length > 0) setLastTx(txs[0]);
+    const init = async () => {
+      const storedUser = localStorage.getItem('user');
+      if (!storedUser) {
+        navigate('/');
+        return;
       }
-      setIsLoading(false);
-    }, 1500);
+      const parsedUser = JSON.parse(storedUser) as Profile;
+      if (parsedUser.role !== 'owner') {
+        navigate('/');
+        return;
+      }
+      
+      try {
+        const [fetchedSettings, fetchedBlacklist, fetchedTransactions] = await Promise.all([
+          db.settings.get(),
+          parsedUser.vehicle_no ? db.blacklist.get(parsedUser.vehicle_no) : Promise.resolve(null),
+          parsedUser.vehicle_no ? db.transactions.getByVehicle(parsedUser.vehicle_no) : Promise.resolve([])
+        ]);
+
+        setUser(parsedUser);
+        setSettings(fetchedSettings);
+        if (fetchedBlacklist) setBlacklistStatus(fetchedBlacklist);
+        setTransactions(fetchedTransactions);
+        if (fetchedTransactions.length > 0) setLastTx(fetchedTransactions[0]);
+      } catch (err) {
+        console.error('Error initializing owner dashboard:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    init();
   }, [navigate]);
 
   const handleLogout = () => {

@@ -33,6 +33,7 @@ export default function Register() {
     trade_license: '',
     fuel_types_sold: 'Octane, Petrol, Diesel'
   });
+  const [isRegistering, setIsRegistering] = useState(false);
   const [error, setError] = useState('');
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -61,76 +62,98 @@ export default function Register() {
     setFormData({...formData, vehicle_number: formattedValue});
   };
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setIsRegistering(true);
 
-    if (activeTab === 'citizen') {
-      const fullVehicleNo = `${formData.vehicle_zone}-${formData.vehicle_series}-${formData.vehicle_number}`;
+    try {
+      if (activeTab === 'citizen') {
+        const fullVehicleNo = `${formData.vehicle_zone}-${formData.vehicle_series}-${formData.vehicle_number}`;
 
-      if (!formData.engine_no || !formData.chassis_no || !smartCardImage) {
-        setError('দয়া করে ইঞ্জিন নম্বর, চ্যাসিস নম্বর এবং স্মার্ট কার্ডের ছবি প্রদান করুন।');
-        return;
-      }
+        if (!formData.engine_no || !formData.chassis_no || !smartCardImage) {
+          setError('দয়া করে ইঞ্জিন নম্বর, চ্যাসিস নম্বর এবং স্মার্ট কার্ডের ছবি প্রদান করুন।');
+          setIsRegistering(false);
+          return;
+        }
 
-      if (db.profiles.get(formData.mobile)) {
-        setError('এই মোবাইল নম্বরটি ইতিমধ্যে নিবন্ধিত। (Mobile already registered)');
-        return;
-      }
-      if (db.profiles.getByVehicle(fullVehicleNo)) {
-        setError('এই গাড়ির নম্বরটি ইতিমধ্যে নিবন্ধিত। (Vehicle already registered)');
-        return;
-      }
-      if (db.profiles.getByEngine(formData.engine_no)) {
-        setError('এই ইঞ্জিন নম্বরটি ইতিমধ্যে নিবন্ধিত। (Engine number already registered)');
-        return;
-      }
-      if (db.profiles.getByChassis(formData.chassis_no)) {
-        setError('এই চ্যাসিস নম্বরটি ইতিমধ্যে নিবন্ধিত। (Chassis number already registered)');
-        return;
-      }
+        const existingMobile = await db.profiles.get(formData.mobile);
+        if (existingMobile) {
+          setError('এই মোবাইল নম্বরটি ইতিমধ্যে নিবন্ধিত। (Mobile already registered)');
+          setIsRegistering(false);
+          return;
+        }
+        
+        const existingVehicle = await db.profiles.getByVehicle(fullVehicleNo);
+        if (existingVehicle) {
+          setError('এই গাড়ির নম্বরটি ইতিমধ্যে নিবন্ধিত। (Vehicle already registered)');
+          setIsRegistering(false);
+          return;
+        }
 
-      const newProfile: Profile = {
-        id: `owner-${Date.now()}`,
-        full_name: formData.full_name,
-        mobile: formData.mobile,
-        vehicle_no: fullVehicleNo,
-        engine_no: formData.engine_no,
-        chassis_no: formData.chassis_no,
-        fuel_type: formData.fuel_type,
-        vehicle_type: formData.vehicle_type,
-        color: formData.color,
-        profession: formData.profession,
-        cc: formData.cc,
-        address: formData.address,
-        smart_card_url: smartCardImage,
-        role: 'owner',
-        status: 'pending'
-      };
+        const existingEngine = await db.profiles.getByEngine(formData.engine_no);
+        if (existingEngine) {
+          setError('এই ইঞ্জিন নম্বরটি ইতিমধ্যে নিবন্ধিত। (Engine number already registered)');
+          setIsRegistering(false);
+          return;
+        }
 
-      db.profiles.create(newProfile);
-      alert('আপনার নিবন্ধন সফল হয়েছে! অ্যাডমিন অনুমোদনের পর আপনি লগইন করতে পারবেন।');
-      navigate('/login');
-    } else if (activeTab === 'operator') {
-      if (db.profiles.get(formData.mobile)) {
-        setError('এই মোবাইল নম্বরটি ইতিমধ্যে নিবন্ধিত। (Mobile already registered)');
-        return;
+        const existingChassis = await db.profiles.getByChassis(formData.chassis_no);
+        if (existingChassis) {
+          setError('এই চ্যাসিস নম্বরটি ইতিমধ্যে নিবন্ধিত। (Chassis number already registered)');
+          setIsRegistering(false);
+          return;
+        }
+
+        const newProfile: Profile = {
+          id: `owner-${Date.now()}`,
+          full_name: formData.full_name,
+          mobile: formData.mobile,
+          vehicle_no: fullVehicleNo,
+          engine_no: formData.engine_no,
+          chassis_no: formData.chassis_no,
+          fuel_type: formData.fuel_type,
+          vehicle_type: formData.vehicle_type,
+          color: formData.color,
+          profession: formData.profession,
+          cc: formData.cc,
+          address: formData.address,
+          smart_card_url: smartCardImage,
+          role: 'owner',
+          status: 'pending'
+        };
+
+        await db.profiles.create(newProfile);
+        alert('আপনার নিবন্ধন সফল হয়েছে! অ্যাডমিন অনুমোদনের পর আপনি লগইন করতে পারবেন।');
+        navigate('/login');
+      } else if (activeTab === 'operator') {
+        const existingMobile = await db.profiles.get(formData.mobile);
+        if (existingMobile) {
+          setError('এই মোবাইল নম্বরটি ইতিমধ্যে নিবন্ধিত। (Mobile already registered)');
+          setIsRegistering(false);
+          return;
+        }
+        const newProfile: Profile = {
+          id: `op-${Date.now()}`,
+          full_name: formData.full_name,
+          mobile: formData.mobile,
+          pump_name: formData.pump_name,
+          location: formData.location,
+          trade_license: formData.trade_license,
+          fuel_types_sold: formData.fuel_types_sold.split(',').map(s => s.trim()),
+          password: formData.password,
+          role: 'operator',
+          status: 'pending'
+        };
+        await db.profiles.create(newProfile);
+        alert('আপনার পাম্প নিবন্ধন সফল হয়েছে! ডিসি স্যারের অনুমোদনের পর আপনি লগইন করতে পারবেন।');
+        navigate('/login');
       }
-      const newProfile: Profile = {
-        id: `op-${Date.now()}`,
-        full_name: formData.full_name,
-        mobile: formData.mobile,
-        pump_name: formData.pump_name,
-        location: formData.location,
-        trade_license: formData.trade_license,
-        fuel_types_sold: formData.fuel_types_sold.split(',').map(s => s.trim()),
-        password: formData.password,
-        role: 'operator',
-        status: 'pending'
-      };
-      db.profiles.create(newProfile);
-      alert('আপনার পাম্প নিবন্ধন সফল হয়েছে! ডিসি স্যারের অনুমোদনের পর আপনি লগইন করতে পারবেন।');
-      navigate('/login');
+    } catch (err) {
+      console.error('Registration error:', err);
+      setError('নিবন্ধন করার সময় একটি সমস্যা হয়েছে। দয়া করে আবার চেষ্টা করুন।');
+    } finally {
+      setIsRegistering(false);
     }
   };
 
@@ -415,9 +438,9 @@ export default function Register() {
                     <Button type="button" variant="outline" className="w-1/3" onClick={() => setStep(1)}>
                       পেছনে (Back)
                     </Button>
-                    <Button type="submit" className="w-2/3" size="lg">
+                    <Button type="submit" className="w-2/3" size="lg" disabled={isRegistering}>
                       <UserPlus className="w-5 h-5 mr-2" />
-                      নিবন্ধন সম্পন্ন করুন
+                      {isRegistering ? 'নিবন্ধন করা হচ্ছে...' : 'নিবন্ধন সম্পন্ন করুন'}
                     </Button>
                   </div>
                 </motion.div>
@@ -501,9 +524,9 @@ export default function Register() {
                       {error}
                     </motion.p>
                   )}
-                  <Button type="submit" className="w-full mt-4" size="lg">
+                  <Button type="submit" className="w-full mt-4" size="lg" disabled={isRegistering}>
                     <UserPlus className="w-5 h-5 mr-2" />
-                    পাম্প নিবন্ধন করুন
+                    {isRegistering ? 'নিবন্ধন করা হচ্ছে...' : 'পাম্প নিবন্ধন করুন'}
                   </Button>
                 </motion.div>
               )}

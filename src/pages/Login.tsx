@@ -14,54 +14,71 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setIsLoggingIn(true);
     
-    let user;
+    try {
+      let user;
 
-    if (activeTab === 'citizen') {
-      user = db.profiles.get(mobile);
-      if (!user || user.role !== 'owner') {
-        setError('দুঃখিত, এই মোবাইল নম্বরটি নিবন্ধিত নয়। (Mobile number not registered)');
+      if (activeTab === 'citizen') {
+        user = await db.profiles.get(mobile);
+        if (!user || user.role !== 'owner') {
+          setError('দুঃখিত, এই মোবাইল নম্বরটি নিবন্ধিত নয়। (Mobile number not registered)');
+          setIsLoggingIn(false);
+          return;
+        }
+        if (user.engine_no !== password) {
+          setError('ইঞ্জিন নম্বর ভুল হয়েছে। (Incorrect Engine Number)');
+          setIsLoggingIn(false);
+          return;
+        }
+      } else if (activeTab === 'admin') {
+        user = await db.profiles.getByEmail(email);
+        if (!user || user.role !== 'admin') {
+          setError('দুঃখিত, এই ইমেইলটি নিবন্ধিত নয়। (Email not registered)');
+          setIsLoggingIn(false);
+          return;
+        }
+        if (user.password !== password) {
+          setError('পাসওয়ার্ড ভুল হয়েছে। (Incorrect Password)');
+          setIsLoggingIn(false);
+          return;
+        }
+      } else if (activeTab === 'operator') {
+        user = await db.profiles.get(mobile);
+        if (!user || user.role !== 'operator') {
+          setError('দুঃখিত, এই মোবাইল নম্বরটি নিবন্ধিত নয়। (Mobile number not registered)');
+          setIsLoggingIn(false);
+          return;
+        }
+        if (user.password !== password) {
+          setError('পাসওয়ার্ড ভুল হয়েছে। (Incorrect Password)');
+          setIsLoggingIn(false);
+          return;
+        }
+      }
+
+      if (!user) {
+        setIsLoggingIn(false);
         return;
       }
-      if (user.engine_no !== password) {
-        setError('ইঞ্জিন নম্বর ভুল হয়েছে। (Incorrect Engine Number)');
-        return;
-      }
-    } else if (activeTab === 'admin') {
-      user = db.profiles.getByEmail(email);
-      if (!user || user.role !== 'admin') {
-        setError('দুঃখিত, এই ইমেইলটি নিবন্ধিত নয়। (Email not registered)');
-        return;
-      }
-      if (user.password !== password) {
-        setError('পাসওয়ার্ড ভুল হয়েছে। (Incorrect Password)');
-        return;
-      }
-    } else if (activeTab === 'operator') {
-      user = db.profiles.get(mobile);
-      if (!user || user.role !== 'operator') {
-        setError('দুঃখিত, এই মোবাইল নম্বরটি নিবন্ধিত নয়। (Mobile number not registered)');
-        return;
-      }
-      if (user.password !== password) {
-        setError('পাসওয়ার্ড ভুল হয়েছে। (Incorrect Password)');
-        return;
-      }
+
+      localStorage.setItem('user', JSON.stringify(user));
+      
+      if (user.role === 'admin') navigate('/dashboard/admin');
+      else if (user.role === 'operator') navigate('/dashboard/operator');
+      else navigate('/dashboard/owner');
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('লগইন করার সময় একটি সমস্যা হয়েছে। দয়া করে আবার চেষ্টা করুন।');
+    } finally {
+      setIsLoggingIn(false);
     }
-
-    if (!user) return;
-
-    // In a real app, we'd use JWT/Auth context. Mocking it here via localStorage.
-    localStorage.setItem('user', JSON.stringify(user));
-    
-    if (user.role === 'admin') navigate('/dashboard/admin');
-    else if (user.role === 'operator') navigate('/dashboard/operator');
-    else navigate('/dashboard/owner');
   };
 
   return (
@@ -213,9 +230,9 @@ export default function Login() {
                 </motion.p>
               )}
 
-              <Button type="submit" className="w-full" size="lg">
+              <Button type="submit" className="w-full" size="lg" disabled={isLoggingIn}>
                 <LogIn className="w-5 h-5 mr-2" />
-                প্রবেশ করুন
+                {isLoggingIn ? 'প্রবেশ করা হচ্ছে...' : 'প্রবেশ করুন'}
               </Button>
             </form>
 

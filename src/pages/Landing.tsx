@@ -12,8 +12,19 @@ export default function Landing() {
   const [pumps, setPumps] = useState<Profile[]>([]);
 
   useEffect(() => {
-    setSettings(db.settings.get());
-    setPumps(db.profiles.getAll().filter(p => p.role === 'operator' && p.status === 'approved'));
+    const loadData = async () => {
+      try {
+        const [fetchedSettings, allProfiles] = await Promise.all([
+          db.settings.get(),
+          db.profiles.getAll()
+        ]);
+        setSettings(fetchedSettings);
+        setPumps(allProfiles.filter(p => p.role === 'operator' && p.status === 'approved'));
+      } catch (err) {
+        console.error('Error loading landing page data:', err);
+      }
+    };
+    loadData();
   }, []);
 
   return (

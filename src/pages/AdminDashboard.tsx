@@ -35,14 +35,24 @@ export default function AdminDashboard() {
 
   const [newQuotaName, setNewQuotaName] = useState('');
 
-  const loadData = () => {
-    setSettings(db.settings.get());
-    setBlacklist(db.blacklist.getAll());
-    setTransactions(db.transactions.getAll());
-    const profiles = db.profiles.getAll();
-    setPendingProfiles(profiles.filter(p => p.status === 'pending'));
-    setApprovedPumps(profiles.filter(p => p.role === 'operator' && p.status === 'approved'));
-    setAllUsers(profiles);
+  const loadData = async () => {
+    try {
+      const [fetchedSettings, fetchedBlacklist, fetchedTransactions, fetchedProfiles] = await Promise.all([
+        db.settings.get(),
+        db.blacklist.getAll(),
+        db.transactions.getAll(),
+        db.profiles.getAll()
+      ]);
+
+      setSettings(fetchedSettings);
+      setBlacklist(fetchedBlacklist);
+      setTransactions(fetchedTransactions);
+      setPendingProfiles(fetchedProfiles.filter(p => p.status === 'pending'));
+      setApprovedPumps(fetchedProfiles.filter(p => p.role === 'operator' && p.status === 'approved'));
+      setAllUsers(fetchedProfiles);
+    } catch (err) {
+      console.error('Error loading admin data:', err);
+    }
   };
 
   useEffect(() => {
@@ -57,18 +67,20 @@ export default function AdminDashboard() {
       return;
     }
     
-    setTimeout(() => {
-      setAdmin(parsedUser);
-      loadData();
-      setIsLoading(false);
-    }, 1500);
+    setAdmin(parsedUser);
+    loadData().then(() => setIsLoading(false));
   }, [navigate]);
 
-  const handleSaveSettings = (e: React.FormEvent) => {
+  const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
-    db.settings.update(settings);
-    setTimeout(() => setIsSaving(false), 800);
+    try {
+      await db.settings.update(settings);
+    } catch (err) {
+      console.error('Error saving settings:', err);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleQuotaChange = (vehicleType: string, field: keyof QuotaSettings, value: number) => {
@@ -104,56 +116,86 @@ export default function AdminDashboard() {
     });
   };
 
-  const handleApprove = (id: string) => {
-    db.profiles.updateStatus(id, 'approved');
-    loadData();
+  const handleApprove = async (id: string) => {
+    try {
+      await db.profiles.updateStatus(id, 'approved');
+      await loadData();
+    } catch (err) {
+      console.error('Error approving profile:', err);
+    }
   };
 
-  const handleReject = (id: string) => {
-    db.profiles.updateStatus(id, 'rejected');
-    loadData();
+  const handleReject = async (id: string) => {
+    try {
+      await db.profiles.updateStatus(id, 'rejected');
+      await loadData();
+    } catch (err) {
+      console.error('Error rejecting profile:', err);
+    }
   };
 
-  const handleDeleteUser = (id: string) => {
+  const handleDeleteUser = async (id: string) => {
     if (window.confirm('আপনি কি নিশ্চিত যে এই ইউজারকে মুছে ফেলতে চান?')) {
-      db.profiles.delete(id);
-      loadData();
+      try {
+        await db.profiles.delete(id);
+        await loadData();
+      } catch (err) {
+        console.error('Error deleting user:', err);
+      }
     }
   };
 
-  const handleDeleteTransaction = (id: string) => {
+  const handleDeleteTransaction = async (id: string) => {
     if (window.confirm('আপনি কি নিশ্চিত যে এই ট্রানজেকশন মুছে ফেলতে চান?')) {
-      db.transactions.delete(id);
-      loadData();
+      try {
+        await db.transactions.delete(id);
+        await loadData();
+      } catch (err) {
+        console.error('Error deleting transaction:', err);
+      }
     }
   };
 
-  const handleTogglePump = (id: string, currentStatus: boolean) => {
-    db.profiles.togglePumpStatus(id, !currentStatus);
-    loadData();
+  const handleTogglePump = async (id: string, currentStatus: boolean) => {
+    try {
+      await db.profiles.togglePumpStatus(id, !currentStatus);
+      await loadData();
+    } catch (err) {
+      console.error('Error toggling pump status:', err);
+    }
   };
 
-  const handleBlockVehicle = (e: React.FormEvent) => {
+  const handleBlockVehicle = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!blockVehicle || !blockDays || !blockReason) return;
 
     const blockedUntil = new Date();
     blockedUntil.setDate(blockedUntil.getDate() + parseInt(blockDays));
 
-    db.blacklist.add({
-      vehicle_no: blockVehicle.toUpperCase(),
-      blocked_until: blockedUntil.toISOString(),
-      reason: blockReason
-    });
+    try {
+      await db.blacklist.add({
+        vehicle_no: blockVehicle.toUpperCase(),
+        blocked_until: blockedUntil.toISOString(),
+        reason: blockReason
+      });
 
-    setBlacklist(db.blacklist.getAll());
-    setBlockVehicle('');
-    setBlockReason('');
+      const fetchedBlacklist = await db.blacklist.getAll();
+      setBlacklist(fetchedBlacklist);
+      setBlockVehicle('');
+      setBlockReason('');
+    } catch (err) {
+      console.error('Error blocking vehicle:', err);
+    }
   };
 
-  const handleUnblock = (vehicle_no: string) => {
-    db.blacklist.remove(vehicle_no);
-    setBlacklist(db.blacklist.getAll());
+  const handleUnblock = async (vehicle_no: string) => {
+    try {
+      await db.blacklist.remove(vehicle_no);
+      const fetchedBlacklist = await db.blacklist.getAll();
+      setBlacklist(fetchedBlacklist);
+    } catch (err) {
+      console.error('Error unblocking vehicle:', err);
+    }
   };
 
   const filteredTransactions = transactions
@@ -267,35 +309,38 @@ export default function AdminDashboard() {
                 <form onSubmit={handleSaveSettings} className="space-y-6">
                   <div className="space-y-4">
                     <Label className="text-lg text-accent-cyan">যানবাহন ভিত্তিক কোটা</Label>
-                    {Object.entries(settings.quotas || {}).map(([vType, quota]) => (
-                      <div key={vType} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-xl bg-white/5 border border-white/10 items-center relative">
-                        <Button 
-                          type="button" 
-                          variant="ghost" 
-                          className="absolute -top-2 -right-2 w-6 h-6 p-0 rounded-full bg-danger text-white hover:bg-danger/80"
-                          onClick={() => handleRemoveQuota(vType)}
-                        >
-                          <XCircle className="w-4 h-4" />
-                        </Button>
-                        <div className="font-medium text-white">{vType}</div>
-                        <div className="space-y-1">
-                          <Label className="text-xs text-text-dim">সর্বোচ্চ সীমা (BDT)</Label>
-                          <Input 
-                            type="number" 
-                            value={quota.bdt_limit}
-                            onChange={(e) => handleQuotaChange(vType, 'bdt_limit', parseInt(e.target.value) || 0)}
-                          />
+                    {Object.entries(settings.quotas || {}).map(([vType, q]) => {
+                      const quota = q as QuotaSettings;
+                      return (
+                        <div key={vType} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-xl bg-white/5 border border-white/10 items-center relative">
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            className="absolute -top-2 -right-2 w-6 h-6 p-0 rounded-full bg-danger text-white hover:bg-danger/80"
+                            onClick={() => handleRemoveQuota(vType)}
+                          >
+                            <XCircle className="w-4 h-4" />
+                          </Button>
+                          <div className="font-medium text-white">{vType}</div>
+                          <div className="space-y-1">
+                            <Label className="text-xs text-text-dim">সর্বোচ্চ সীমা (BDT)</Label>
+                            <Input 
+                              type="number" 
+                              value={quota.bdt_limit}
+                              onChange={(e) => handleQuotaChange(vType, 'bdt_limit', parseInt(e.target.value) || 0)}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs text-text-dim">সময়সীমা (Days)</Label>
+                            <Input 
+                              type="number" 
+                              value={quota.day_gap}
+                              onChange={(e) => handleQuotaChange(vType, 'day_gap', parseInt(e.target.value) || 0)}
+                            />
+                          </div>
                         </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs text-text-dim">সময়সীমা (Days)</Label>
-                          <Input 
-                            type="number" 
-                            value={quota.day_gap}
-                            onChange={(e) => handleQuotaChange(vType, 'day_gap', parseInt(e.target.value) || 0)}
-                          />
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                     
                     <div className="flex gap-2 mt-4">
                       <Input 
