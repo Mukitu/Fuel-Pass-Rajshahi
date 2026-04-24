@@ -133,12 +133,12 @@ export const db = {
   },
   settings: {
     get: async () => {
-      const { data, error } = await supabase.from('global_settings').select('*').eq('id', 1).single();
+      const { data, error } = await supabase.from('global_settings').select('*').eq('id', 'main').single();
       if (error) throw error;
       return data as GlobalSettings;
     },
     update: async (settings: Partial<GlobalSettings>) => { 
-      const { data, error } = await supabase.from('global_settings').update(settings).eq('id', 1).select().single();
+      const { data, error } = await supabase.from('global_settings').update(settings).eq('id', 'main').select().single();
       if (error) throw error;
       return data as GlobalSettings; 
     }

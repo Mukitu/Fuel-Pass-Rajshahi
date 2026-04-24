@@ -234,7 +234,7 @@ export default function OwnerDashboard() {
           </div>
 
           <div className="md:col-span-2 space-y-6">
-            {/* E-Fuel Card Hidden for Download, but visible in UI as a preview */}
+            {/* E-Fuel Card Preview */}
             <div className="overflow-x-auto pb-4 -mx-1 px-1">
               <div id="fuel-card-preview" className="min-w-[500px] md:min-w-0 overflow-hidden rounded-2xl border border-glass-border bg-white text-black relative" ref={cardRef}>
                 {/* Card Header */}
@@ -254,89 +254,89 @@ export default function OwnerDashboard() {
                   </div>
                 </div>
 
-              {/* Card Body */}
-              <div className="p-6 relative">
-                {/* Watermark */}
-                <div className="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none">
-                  <Droplet className="w-64 h-64 text-black" />
-                </div>
+                {/* Card Body */}
+                <div className="p-6 relative">
+                  {/* Watermark */}
+                  <div className="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none">
+                    <Droplet className="w-64 h-64 text-black" />
+                  </div>
 
-                <div className="flex justify-between items-start mb-6 border-b border-gray-200 pb-4">
-                  <div>
-                    <p className="text-xs text-gray-500">রেজিস্ট্রেশন নং / Registration No.</p>
-                    <h3 className="text-2xl font-bold text-black">{user.vehicle_no}</h3>
-                    <p className="text-xs text-gray-500 mt-2">যানের বিবরণ / Vehicle Description</p>
-                    <p className="font-bold">{user.vehicle_type || 'N/A'}</p>
+                  <div className="flex justify-between items-start mb-6 border-b border-gray-200 pb-4">
+                    <div>
+                      <p className="text-xs text-gray-500">রেজিস্ট্রেশন নং / Registration No.</p>
+                      <h3 className="text-2xl font-bold text-black">{user.vehicle_no}</h3>
+                      <p className="text-xs text-gray-500 mt-2">যানের বিবরণ / Vehicle Description</p>
+                      <p className="font-bold">{user.vehicle_type || 'N/A'}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-gray-500">তারিখ / Date</p>
+                      <p className="font-bold">{new Date().toLocaleDateString('bn-BD')}</p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-xs text-gray-500">তারিখ / Date</p>
-                    <p className="font-bold">{new Date().toLocaleDateString('bn-BD')}</p>
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-2 gap-y-4 gap-x-8 mb-6">
-                  <div>
-                    <p className="text-xs text-gray-500">নাম / Name</p>
-                    <p className="font-bold uppercase">{user.full_name}</p>
+                  <div className="grid grid-cols-2 gap-y-4 gap-x-8 mb-6">
+                    <div>
+                      <p className="text-xs text-gray-500">নাম / Name</p>
+                      <p className="font-bold uppercase">{user.full_name}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">মোবাইল / Mobile</p>
+                      <p className="font-bold">{user.mobile}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">রং / Color</p>
+                      <p className="font-bold">{user.color || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">পেশা / Profession</p>
+                      <p className="font-bold">{user.profession || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">সিসি / CC</p>
+                      <p className="font-bold">{user.cc || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">জ্বালানি / Fuel</p>
+                      <p className="font-bold">{user.fuel_type || 'N/A'}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs text-gray-500">মোবাইল / Mobile</p>
-                    <p className="font-bold">{user.mobile}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">রং / Color</p>
-                    <p className="font-bold">{user.color || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">পেশা / Profession</p>
-                    <p className="font-bold">{user.profession || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">সিসি / CC</p>
-                    <p className="font-bold">{user.cc || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">জ্বালানি / Fuel</p>
-                    <p className="font-bold">{user.fuel_type || 'N/A'}</p>
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-2 gap-8 mb-6 border-t border-gray-200 pt-4">
-                  <div>
-                    <p className="text-xs text-gray-500">ইঞ্জিন নং / Engine No.</p>
-                    <p className="font-bold">{user.engine_no || 'N/A'}</p>
+                  <div className="grid grid-cols-2 gap-8 mb-6 border-t border-gray-200 pt-4">
+                    <div>
+                      <p className="text-xs text-gray-500">ইঞ্জিন নং / Engine No.</p>
+                      <p className="font-bold">{user.engine_no || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">চ্যাসিস নং / Chassis No.</p>
+                      <p className="font-bold">{user.chassis_no || 'N/A'}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs text-gray-500">চ্যাসিস নং / Chassis No.</p>
-                    <p className="font-bold">{user.chassis_no || 'N/A'}</p>
-                  </div>
-                </div>
 
-                <div className="flex justify-between items-end mt-8">
-                  <div>
-                    <p className="text-xs text-gray-500">ঠিকানা / Address</p>
-                    <p className="font-medium text-sm">{user.address || 'N/A'}</p>
-                    <p className="text-xs text-gray-400 mt-2">রাজশাহী ফুয়েল পাস — ডিজিটাল তেল বিতরণ ব্যবস্থাপনা সিস্টেম</p>
-                  </div>
-                  <div className="bg-white p-2 border border-gray-200 rounded-lg">
-                    <QRCodeSVG 
-                      value={JSON.stringify({ v: user.vehicle_no, id: user.id })} 
-                      size={80}
-                      level="L"
-                    />
+                  <div className="flex justify-between items-end mt-8">
+                    <div>
+                      <p className="text-xs text-gray-500">ঠিকানা / Address</p>
+                      <p className="font-medium text-sm">{user.address || 'N/A'}</p>
+                      <p className="text-xs text-gray-400 mt-2">রাজশাহী ফুয়েল পাস — ডিজিটাল তেল বিতরণ ব্যবস্থাপনা সিস্টেম</p>
+                    </div>
+                    <div className="bg-white p-2 border border-gray-200 rounded-lg">
+                      <QRCodeSVG 
+                        value={JSON.stringify({ v: user.vehicle_no, id: user.id })} 
+                        size={80}
+                        level="L"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-              
-              {/* Card Footer */}
-              <div className="bg-[#0A5C36] text-white p-2 flex justify-between items-center text-xs px-4">
-                <p>রাজশাহী জেলা প্রশাসন</p>
-                <p>রাজশাহী.ফুয়েল</p>
+                
+                {/* Card Footer */}
+                <div className="bg-[#0A5C36] text-white p-2 flex justify-between items-center text-xs px-4">
+                  <p>রাজশাহী জেলা প্রশাসন</p>
+                  <p>রাজশাহী.ফুয়েল</p>
+                </div>
               </div>
             </div>
-          </div>
 
-          {needsSlotManagement && (
+            {needsSlotManagement && (
               <Card className="border-accent-cyan/30 bg-accent-cyan/5">
                 <CardHeader>
                   <CardTitle className="text-xl flex items-center text-accent-cyan">
