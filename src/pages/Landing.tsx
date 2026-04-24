@@ -1,25 +1,57 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { LogIn, Car, Droplet, ShieldCheck, Megaphone, MapPin } from 'lucide-react';
+import { LogIn, Car, Droplet, ShieldCheck, Megaphone, MapPin, Activity, History } from 'lucide-react';
 import { Button } from '@/src/components/ui/Button';
 import { Card, CardContent } from '@/src/components/ui/Card';
-import { db, GlobalSettings, Profile } from '@/src/lib/db';
+import { db, GlobalSettings, Profile, Transaction } from '@/src/lib/db';
 
 export default function Landing() {
   const navigate = useNavigate();
   const [settings, setSettings] = useState<GlobalSettings | null>(null);
   const [pumps, setPumps] = useState<Profile[]>([]);
+  const [pumpSales, setPumpSales] = useState<Record<string, number>>({});
+  const [stats, setStats] = useState({
+    petrol: 0,
+    octane: 0,
+    diesel: 0,
+    totalLiters: 0
+  });
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [fetchedSettings, allProfiles] = await Promise.all([
+        const [fetchedSettings, allProfiles, allTxs] = await Promise.all([
           db.settings.get(),
-          db.profiles.getAll()
+          db.profiles.getAll(),
+          db.transactions.getAll()
         ]);
         setSettings(fetchedSettings);
-        setPumps(allProfiles.filter(p => p.role === 'operator' && p.status === 'approved'));
+        
+        const approvedPumps = allProfiles.filter(p => p.role === 'operator' && p.status === 'approved');
+        setPumps(approvedPumps);
+
+        // Calculate today's stats
+        const todayStr = new Date().toISOString().split('T')[0];
+        const todays = allTxs.filter(tx => tx.created_at.startsWith(todayStr));
+        
+        const newStats = { petrol: 0, octane: 0, diesel: 0, totalLiters: 0 };
+        const salesByPump: Record<string, number> = {};
+
+        todays.forEach(tx => {
+          if (tx.liters) {
+            newStats.totalLiters += tx.liters;
+            salesByPump[tx.pump_id] = (salesByPump[tx.pump_id] || 0) + tx.liters;
+            
+            const type = tx.fuel_type?.toLowerCase() || '';
+            if (type.includes('petrol')) newStats.petrol += tx.liters;
+            else if (type.includes('octane')) newStats.octane += tx.liters;
+            else if (type.includes('diesel')) newStats.diesel += tx.liters;
+          }
+        });
+        setStats(newStats);
+        setPumpSales(salesByPump);
+
       } catch (err) {
         console.error('Error loading landing page data:', err);
       }
@@ -104,12 +136,25 @@ export default function Landing() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-24 w-full max-w-5xl"
         >
-          <div className="glass-panel p-6 flex flex-col items-center text-center hover:border-accent-cyan/50 transition-colors">
+          <div className="glass-panel p-6 flex flex-col items-center text-center border-accent-cyan/20 bg-accent-cyan/5">
             <div className="w-12 h-12 rounded-full bg-accent-cyan/10 flex items-center justify-center mb-4">
-              <Droplet className="w-6 h-6 text-accent-cyan" />
+              <Activity className="w-6 h-6 text-accent-cyan" />
             </div>
-            <h3 className="text-lg font-bold text-white mb-2">তেল পাম্প দেখুন</h3>
-            <p className="text-sm text-text-dim">আপনার নিকটস্থ পাম্পের তথ্য ও স্টক সম্পর্কে জানুন।</p>
+            <h3 className="text-lg font-bold text-white mb-2">আজকের বিক্রয় (Liters)</h3>
+            <div className="grid grid-cols-3 w-full gap-2 mt-2">
+              <div className="text-center">
+                <p className="text-[10px] text-text-dim uppercase">পেট্রোল</p>
+                <p className="text-sm font-bold text-white">{stats.petrol.toFixed(1)}</p>
+              </div>
+              <div className="text-center border-x border-white/10">
+                <p className="text-[10px] text-text-dim uppercase">অকটেন</p>
+                <p className="text-sm font-bold text-white">{stats.octane.toFixed(1)}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[10px] text-text-dim uppercase">ডিজেল</p>
+                <p className="text-sm font-bold text-white">{stats.diesel.toFixed(1)}</p>
+              </div>
+            </div>
           </div>
           
           <div className="glass-panel p-6 flex flex-col items-center text-center hover:border-accent-cyan/50 transition-colors">
@@ -143,23 +188,50 @@ export default function Landing() {
               <p>কোনো অনুমোদিত পাম্প পাওয়া যায়নি।</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {pumps.map(pump => (
-                <Card key={pump.id} className="bg-white/5 border-white/10 hover:border-accent-cyan/30 transition-colors">
+                <Card key={pump.id} className="bg-white/5 border-white/10 hover:border-accent-cyan/30 transition-all group">
                   <CardContent className="p-6">
                     <div className="flex justify-between items-start mb-4">
-                      <h3 className="text-xl font-bold text-white">{pump.pump_name}</h3>
-                      <div className={`px-3 py-1 rounded-full text-xs font-medium border ${pump.is_open !== false ? 'bg-success/10 text-success border-success/20' : 'bg-danger/10 text-danger border-danger/20'}`}>
-                        {pump.is_open !== false ? 'খোলা আছে' : 'বন্ধ আছে'}
+                      <div>
+                        <h3 className="text-xl font-bold text-white group-hover:text-accent-cyan transition-colors">{pump.pump_name}</h3>
+                        <div className="flex items-center text-text-dim mt-1">
+                          <MapPin className="w-3 h-3 mr-1" />
+                          <span className="text-xs">{pump.location}</span>
+                        </div>
+                      </div>
+                      <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase border ${pump.is_open !== false ? 'bg-success/10 text-success border-success/20' : 'bg-danger/10 text-danger border-danger/20'}`}>
+                        {pump.is_open !== false ? 'Open' : 'Closed'}
                       </div>
                     </div>
-                    <div className="flex items-start text-text-dim mb-4">
-                      <MapPin className="w-4 h-4 mr-2 mt-1 shrink-0" />
-                      <span className="text-sm">{pump.location}</span>
+                    
+                    <div className="space-y-3 mt-6">
+                      <p className="text-xs text-text-dim font-medium uppercase tracking-wider">আজকের জ্বালানি মূল্য (Per Liter)</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="bg-white/5 p-2 rounded-lg text-center border border-white/5">
+                          <p className="text-[10px] text-text-dim">পেট্রোল</p>
+                          <p className="text-sm font-bold text-white">৳{pump.petrol_price || '--'}</p>
+                        </div>
+                        <div className="bg-white/5 p-2 rounded-lg text-center border border-white/5">
+                          <p className="text-[10px] text-text-dim">অকটেন</p>
+                          <p className="text-sm font-bold text-white">৳{pump.octane_price || '--'}</p>
+                        </div>
+                        <div className="bg-white/5 p-2 rounded-lg text-center border border-white/5">
+                          <p className="text-[10px] text-text-dim">ডিজেল</p>
+                          <p className="text-sm font-bold text-white">৳{pump.diesel_price || '--'}</p>
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-sm">
-                      <span className="text-text-dim">জ্বালানি: </span>
-                      <span className="text-white">{pump.fuel_types_sold?.join(', ')}</span>
+
+                    <div className="mt-4 pt-4 border-t border-white/5 text-[10px] text-text-dim flex justify-between items-center">
+                      <span>ট্রেড লাইসেন্স: {pump.trade_license || 'N/A'}</span>
+                      <div className="flex flex-col items-end">
+                        <span className="text-accent-cyan font-bold mb-1">{pump.fuel_types_sold?.join(', ')}</span>
+                        <div className="flex items-center gap-1.5 bg-accent-cyan/10 px-2 py-0.5 rounded text-accent-cyan">
+                          <History className="w-3 h-3" />
+                          <span className="font-bold">আজকের বিক্রয়: {pumpSales[pump.id]?.toFixed(1) || '0.0'} L</span>
+                        </div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

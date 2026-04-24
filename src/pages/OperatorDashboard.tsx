@@ -27,7 +27,25 @@ export default function OperatorDashboard() {
   const [validationMessage, setValidationMessage] = useState('');
   
   const [amount, setAmount] = useState('');
+  const [liters, setLiters] = useState('');
+  const [selectedFuelType, setSelectedFuelType] = useState('');
   const [txSuccess, setTxSuccess] = useState(false);
+
+  const [prices, setPrices] = useState({
+    petrol: operator?.petrol_price || 0,
+    octane: operator?.octane_price || 0,
+    diesel: operator?.diesel_price || 0
+  });
+
+  useEffect(() => {
+    if (operator) {
+      setPrices({
+        petrol: operator.petrol_price || 0,
+        octane: operator.octane_price || 0,
+        diesel: operator.diesel_price || 0
+      });
+    }
+  }, [operator]);
 
   useEffect(() => {
     const init = async () => {
@@ -180,6 +198,62 @@ export default function OperatorDashboard() {
 
     setValidationStatus('valid');
     setValidationMessage('গাড়িটি জ্বালানি নেওয়ার জন্য উপযুক্ত।');
+    // Set default fuel type based on vehicle if available or first available
+    setSelectedFuelType(vehicle.fuel_type || 'Petrol');
+  };
+
+  const handlePriceUpdate = async () => {
+    if (!operator) return;
+    try {
+      await db.profiles.update(operator.id, {
+        petrol_price: Number(prices.petrol),
+        octane_price: Number(prices.octane),
+        diesel_price: Number(prices.diesel)
+      });
+      // Update local storage too to keep it in sync
+      const updatedOperator = { 
+        ...operator, 
+        petrol_price: Number(prices.petrol),
+        octane_price: Number(prices.octane),
+        diesel_price: Number(prices.diesel)
+      };
+      localStorage.setItem('user', JSON.stringify(updatedOperator));
+      setOperator(updatedOperator);
+      alert('মূল্য সফলভাবে আপডেট করা হয়েছে।');
+    } catch (err) {
+      console.error('Error updating prices:', err);
+      alert('মূল্য আপডেট করার সময় সমস্যা হয়েছে।');
+    }
+  };
+
+  const calculateFromAmount = (val: string) => {
+    setAmount(val);
+    const numAmt = Number(val);
+    const price = getPriceForType(selectedFuelType);
+    if (price > 0 && numAmt > 0) {
+      setLiters((numAmt / price).toFixed(2));
+    } else {
+      setLiters('');
+    }
+  };
+
+  const calculateFromLiters = (val: string) => {
+    setLiters(val);
+    const numLiters = Number(val);
+    const price = getPriceForType(selectedFuelType);
+    if (price > 0 && numLiters > 0) {
+      setAmount((numLiters * price).toFixed(0));
+    } else {
+      setAmount('');
+    }
+  };
+
+  const getPriceForType = (type: string) => {
+    const t = type.toLowerCase();
+    if (t.includes('petrol')) return prices.petrol;
+    if (t.includes('octane')) return prices.octane;
+    if (t.includes('diesel')) return prices.diesel;
+    return 0;
   };
 
   const handleTransaction = async (e: React.FormEvent) => {
@@ -188,6 +262,8 @@ export default function OperatorDashboard() {
 
     const vehicleQuota = settings.quotas[scannedVehicle.vehicle_type || ''] || { bdt_limit: 0, day_gap: 0 };
     const numAmount = Number(amount);
+    const numLiters = Number(liters);
+
     if (numAmount <= 0 || numAmount > vehicleQuota.bdt_limit) {
       alert(`পরিমাণ 0 থেকে ${vehicleQuota.bdt_limit} টাকার মধ্যে হতে হবে।`);
       return;
@@ -197,7 +273,10 @@ export default function OperatorDashboard() {
       const newTx = await db.transactions.add({
         vehicle_no: scannedVehicle.vehicle_no!,
         amount_bdt: numAmount,
-        pump_id: operator.id
+        liters: numLiters,
+        fuel_type: selectedFuelType,
+        pump_id: operator.id,
+        pump_name: operator.pump_name
       });
 
       setTodaysTransactions(prev => [newTx, ...prev]);
@@ -208,6 +287,7 @@ export default function OperatorDashboard() {
         setValidationStatus('idle');
         setTxSuccess(false);
         setAmount('');
+        setLiters('');
       }, 3000);
     } catch (err) {
       console.error('Error processing transaction:', err);
@@ -306,6 +386,50 @@ export default function OperatorDashboard() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center text-lg md:text-xl">
+                <Droplet className="w-5 h-5 mr-2 text-accent-cyan" />
+                জ্বালানি মূল্য নির্ধারণ (Fuel Price Setup)
+              </CardTitle>
+              <CardDescription>প্রতি লিটার জ্বালানির দাম নির্ধারণ করুন</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                <div className="space-y-2">
+                  <Label>পেট্রোল (Petrol) / L</Label>
+                  <Input 
+                    type="number" 
+                    value={prices.petrol} 
+                    onChange={(e) => setPrices({...prices, petrol: Number(e.target.value)})}
+                    placeholder="0"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>অকটেন (Octane) / L</Label>
+                  <Input 
+                    type="number" 
+                    value={prices.octane} 
+                    onChange={(e) => setPrices({...prices, octane: Number(e.target.value)})}
+                    placeholder="0"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>ডিজেল (Diesel) / L</Label>
+                  <Input 
+                    type="number" 
+                    value={prices.diesel} 
+                    onChange={(e) => setPrices({...prices, diesel: Number(e.target.value)})}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+              <Button onClick={handlePriceUpdate} className="w-full">
+                মূল্য সংরক্ষণ করুন (Save Prices)
+              </Button>
+            </CardContent>
+          </Card>
+
           <Card className="md:col-span-2">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center text-lg md:text-xl">
@@ -425,16 +549,65 @@ export default function OperatorDashboard() {
                     <CardContent>
                       <form onSubmit={handleTransaction} className="space-y-4">
                         <div className="space-y-2">
-                          <Label>টাকার পরিমাণ (Amount in BDT)</Label>
-                          <Input 
-                            type="number" 
-                            placeholder="0" 
-                            value={amount}
-                            onChange={(e) => setAmount(e.target.value)}
-                            max={settings.quotas[scannedVehicle.vehicle_type || '']?.bdt_limit || 0}
-                            required
-                          />
+                          <Label>জ্বালানির ধরন (Fuel Type)</Label>
+                          <div className="flex gap-2">
+                            {['Petrol', 'Octane', 'Diesel'].map((type) => (
+                              <button
+                                key={type}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedFuelType(type);
+                                  // Recalculate based on current amount if exists
+                                  if (amount) {
+                                    const price = type.toLowerCase() === 'petrol' ? prices.petrol : 
+                                                  type.toLowerCase() === 'octane' ? prices.octane : prices.diesel;
+                                    if (price > 0) setLiters((Number(amount) / price).toFixed(2));
+                                  }
+                                }}
+                                className={`flex-1 py-2 px-3 rounded-lg border transition-all ${
+                                  selectedFuelType === type 
+                                    ? 'bg-accent-cyan/20 border-accent-cyan text-accent-cyan shadow-[0_0_10px_rgba(100,255,218,0.2)]' 
+                                    : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
+                                }`}
+                              >
+                                {type === 'Petrol' ? 'পেট্রোল' : type === 'Octane' ? 'অকটেন' : 'ডিজেল'}
+                              </button>
+                            ))}
+                          </div>
                         </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>টাকার পরিমাণ (Amount in BDT)</Label>
+                            <Input 
+                              type="number" 
+                              placeholder="0" 
+                              value={amount}
+                              onChange={(e) => calculateFromAmount(e.target.value)}
+                              max={settings.quotas[scannedVehicle.vehicle_type || '']?.bdt_limit || 0}
+                              required
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>লিটার (Quantity in Liters)</Label>
+                            <Input 
+                              type="number" 
+                              step="0.01"
+                              placeholder="0.00" 
+                              value={liters}
+                              onChange={(e) => calculateFromLiters(e.target.value)}
+                              required
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="p-3 bg-white/5 rounded-lg border border-white/10">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-text-dim">বর্তমান মূল্য:</span>
+                            <span className="text-white font-medium">৳ {getPriceForType(selectedFuelType)} / L</span>
+                          </div>
+                        </div>
+
                         <Button type="submit" className="w-full" size="lg">
                           নিশ্চিত করুন (Confirm Transaction)
                         </Button>
@@ -473,23 +646,20 @@ export default function OperatorDashboard() {
                       <tr>
                         <th className="px-4 py-3 rounded-tl-lg">সময়</th>
                         <th className="px-4 py-3">গাড়ির নম্বর</th>
-                        <th className="px-4 py-3">মালিকের নাম</th>
-                        <th className="px-4 py-3">ইঞ্জিন নং</th>
-                        <th className="px-4 py-3">চ্যাসিস নং</th>
-                        <th className="px-4 py-3 rounded-tr-lg text-right">পরিমাণ (৳)</th>
+                        <th className="px-4 py-3">জ্বালানি</th>
+                        <th className="px-4 py-3">পরিমাণ (BDT)</th>
+                        <th className="px-4 py-3 rounded-tr-lg text-right">লিটার (L)</th>
                       </tr>
                     </thead>
                     <tbody>
                       {todaysTransactions.map((tx) => {
-                        const v = transactionOwners[tx.vehicle_no];
                         return (
                           <tr key={tx.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                             <td className="px-4 py-3">{new Date(tx.created_at).toLocaleTimeString('bn-BD')}</td>
                             <td className="px-4 py-3 font-medium text-white">{tx.vehicle_no}</td>
-                            <td className="px-4 py-3">{v?.full_name || 'N/A'}</td>
-                            <td className="px-4 py-3">{v?.engine_no || 'N/A'}</td>
-                            <td className="px-4 py-3">{v?.chassis_no || 'N/A'}</td>
-                            <td className="px-4 py-3 text-right font-bold text-success">{tx.amount_bdt}</td>
+                            <td className="px-4 py-3 text-accent-cyan">{tx.fuel_type || 'N/A'}</td>
+                            <td className="px-4 py-3 font-bold text-success">৳ {tx.amount_bdt}</td>
+                            <td className="px-4 py-3 text-right text-white">{tx.liters || 'N/A'}</td>
                           </tr>
                         );
                       })}

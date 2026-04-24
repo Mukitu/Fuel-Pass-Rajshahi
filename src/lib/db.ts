@@ -31,6 +31,9 @@ export interface Profile {
   trade_license?: string;
   fuel_types_sold?: string[];
   is_open?: boolean;
+  petrol_price?: number;
+  octane_price?: number;
+  diesel_price?: number;
 }
 
 export interface QuotaSettings {
@@ -54,7 +57,10 @@ export interface Transaction {
   id: string;
   vehicle_no: string;
   amount_bdt: number;
+  liters?: number;
+  fuel_type?: string;
   pump_id: string;
+  pump_name?: string;
   created_at: string; // ISO date
 }
 
