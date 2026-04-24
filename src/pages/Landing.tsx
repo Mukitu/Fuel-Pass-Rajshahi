@@ -10,7 +10,7 @@ export default function Landing() {
   const navigate = useNavigate();
   const [settings, setSettings] = useState<GlobalSettings | null>(null);
   const [pumps, setPumps] = useState<Profile[]>([]);
-  const [pumpSales, setPumpSales] = useState<Record<string, number>>({});
+  const [pumpSales, setPumpSales] = useState<Record<string, { petrol: number, octane: number, diesel: number, total: number }>>({});
   const [stats, setStats] = useState({
     petrol: 0,
     octane: 0,
@@ -32,21 +32,32 @@ export default function Landing() {
         setPumps(approvedPumps);
 
         // Calculate today's stats
-        const todayStr = new Date().toISOString().split('T')[0];
+        const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
         const todays = allTxs.filter(tx => tx.created_at.startsWith(todayStr));
         
         const newStats = { petrol: 0, octane: 0, diesel: 0, totalLiters: 0 };
-        const salesByPump: Record<string, number> = {};
+        const salesByPump: Record<string, { petrol: number, octane: number, diesel: number, total: number }> = {};
 
         todays.forEach(tx => {
           if (tx.liters) {
             newStats.totalLiters += tx.liters;
-            salesByPump[tx.pump_id] = (salesByPump[tx.pump_id] || 0) + tx.liters;
+            
+            if (!salesByPump[tx.pump_id]) {
+              salesByPump[tx.pump_id] = { petrol: 0, octane: 0, diesel: 0, total: 0 };
+            }
+            salesByPump[tx.pump_id].total += tx.liters;
             
             const type = tx.fuel_type?.toLowerCase() || '';
-            if (type.includes('petrol')) newStats.petrol += tx.liters;
-            else if (type.includes('octane')) newStats.octane += tx.liters;
-            else if (type.includes('diesel')) newStats.diesel += tx.liters;
+            if (type.includes('petrol')) {
+              newStats.petrol += tx.liters;
+              salesByPump[tx.pump_id].petrol += tx.liters;
+            } else if (type.includes('octane')) {
+              newStats.octane += tx.liters;
+              salesByPump[tx.pump_id].octane += tx.liters;
+            } else if (type.includes('diesel')) {
+              newStats.diesel += tx.liters;
+              salesByPump[tx.pump_id].diesel += tx.liters;
+            }
           }
         });
         setStats(newStats);
@@ -206,19 +217,19 @@ export default function Landing() {
                     </div>
                     
                     <div className="space-y-3 mt-6">
-                      <p className="text-xs text-text-dim font-medium uppercase tracking-wider">আজকের জ্বালানি মূল্য (Per Liter)</p>
+                      <p className="text-xs text-text-dim font-medium uppercase tracking-wider">আজকের বিক্রয় (Liters)</p>
                       <div className="grid grid-cols-3 gap-2">
                         <div className="bg-white/5 p-2 rounded-lg text-center border border-white/5">
                           <p className="text-[10px] text-text-dim">পেট্রোল</p>
-                          <p className="text-sm font-bold text-white">৳{pump.petrol_price || '--'}</p>
+                          <p className="text-sm font-bold text-white">{pumpSales[pump.id]?.petrol.toFixed(1) || '0.0'} L</p>
                         </div>
                         <div className="bg-white/5 p-2 rounded-lg text-center border border-white/5">
                           <p className="text-[10px] text-text-dim">অকটেন</p>
-                          <p className="text-sm font-bold text-white">৳{pump.octane_price || '--'}</p>
+                          <p className="text-sm font-bold text-white">{pumpSales[pump.id]?.octane.toFixed(1) || '0.0'} L</p>
                         </div>
                         <div className="bg-white/5 p-2 rounded-lg text-center border border-white/5">
                           <p className="text-[10px] text-text-dim">ডিজেল</p>
-                          <p className="text-sm font-bold text-white">৳{pump.diesel_price || '--'}</p>
+                          <p className="text-sm font-bold text-white">{pumpSales[pump.id]?.diesel.toFixed(1) || '0.0'} L</p>
                         </div>
                       </div>
                     </div>
@@ -229,7 +240,7 @@ export default function Landing() {
                         <span className="text-accent-cyan font-bold mb-1">{pump.fuel_types_sold?.join(', ')}</span>
                         <div className="flex items-center gap-1.5 bg-accent-cyan/10 px-2 py-0.5 rounded text-accent-cyan">
                           <History className="w-3 h-3" />
-                          <span className="font-bold">আজকের বিক্রয়: {pumpSales[pump.id]?.toFixed(1) || '0.0'} L</span>
+                          <span className="font-bold">আজকের মোট বিক্রয়: {pumpSales[pump.id]?.total.toFixed(1) || '0.0'} L</span>
                         </div>
                       </div>
                     </div>

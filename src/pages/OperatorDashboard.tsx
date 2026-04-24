@@ -71,7 +71,7 @@ export default function OperatorDashboard() {
         setOperator(parsedUser);
         setSettings(fetchedSettings);
         
-        const todayStr = new Date().toISOString().split('T')[0];
+        const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
         const todays = allTxs.filter(tx => 
           tx.pump_id === parsedUser.id && 
           tx.created_at.startsWith(todayStr)
@@ -86,6 +86,7 @@ export default function OperatorDashboard() {
         setTransactionOwners(ownerMap);
       } catch (err) {
         console.error('Error initializing operator dashboard:', err);
+        setError('ডাটা লোড করার সময় সমস্যা হয়েছে। অনুগ্রহ করে ইন্টারনেট কানেকশন চেক করুন।');
       } finally {
         setIsLoading(false);
       }
@@ -298,22 +299,53 @@ export default function OperatorDashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen p-4 md:p-8 relative overflow-hidden">
-        <div className="max-w-3xl mx-auto space-y-6 relative z-10">
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <Shimmer className="h-8 w-48 mb-2" />
-              <Shimmer className="h-4 w-32" />
-            </div>
-            <Shimmer className="h-10 w-24" />
+      <div className="min-h-screen p-4 md:p-8 relative overflow-hidden bg-[#020617] flex items-center justify-center">
+        <div className="max-w-4xl w-full space-y-6 relative z-10 text-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-12 h-12 border-4 border-accent-cyan border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-accent-cyan animate-pulse">লোড হচ্ছে...</p>
           </div>
-          <Shimmer className="h-48 w-full" />
         </div>
       </div>
     );
   }
 
-  if (!operator || !settings) return null;
+  if (error) {
+    return (
+      <div className="min-h-screen p-4 flex items-center justify-center bg-[#020617]">
+        <Card className="max-w-md w-full p-8 text-center border-danger/30 bg-danger/5">
+          <AlertTriangle className="w-16 h-16 text-danger mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-white mb-2">সমস্যা হয়েছে</h2>
+          <p className="text-text-dim mb-6">{error}</p>
+          <Button onClick={() => window.location.reload()} className="w-full">
+            আবার চেষ্টা করুন
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!operator || !settings) {
+    return (
+      <div className="min-h-screen p-4 flex items-center justify-center bg-[#020617]">
+        <Card className="max-w-md w-full p-8 text-center border-accent-cyan/30">
+          <p className="text-text-dim mb-4">অপারেটর তথ্য পাওয়া যাচ্ছে না।</p>
+          <Button onClick={() => { localStorage.removeItem('user'); navigate('/'); }} variant="outline" className="w-full">
+            প্রবেশ পাতায় ফিরুন
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
+  const todayStats = todaysTransactions.reduce((acc, tx) => {
+    acc.total += tx.amount_bdt;
+    const type = tx.fuel_type?.toLowerCase() || '';
+    if (type.includes('petrol')) acc.petrol += tx.liters || 0;
+    else if (type.includes('octane')) acc.octane += tx.liters || 0;
+    else if (type.includes('diesel')) acc.diesel += tx.liters || 0;
+    return acc;
+  }, { total: 0, petrol: 0, octane: 0, diesel: 0 });
 
   if (operator.status === 'pending') {
     return (
@@ -384,6 +416,34 @@ export default function OperatorDashboard() {
             <LogOut className="w-4 h-4 mr-2" />
             লগআউট
           </Button>
+        </div>
+
+        {/* Stats Summary */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card className="bg-accent-cyan/5 border-accent-cyan/20">
+            <CardContent className="p-4">
+              <p className="text-[10px] md:text-xs text-text-dim uppercase mb-1">মোট বিক্রি (আজ)</p>
+              <p className="text-lg md:text-xl font-bold text-accent-cyan">৳ {todayStats.total}</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-white/5 border-white/10">
+            <CardContent className="p-4">
+              <p className="text-[10px] md:text-xs text-text-dim uppercase mb-1">পেট্রোল বিক্রি</p>
+              <p className="text-lg md:text-xl font-bold text-white">{todayStats.petrol.toFixed(1)} L</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-white/5 border-white/10">
+            <CardContent className="p-4">
+              <p className="text-[10px] md:text-xs text-text-dim uppercase mb-1">অকটেন বিক্রি</p>
+              <p className="text-lg md:text-xl font-bold text-white">{todayStats.octane.toFixed(1)} L</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-white/5 border-white/10">
+            <CardContent className="p-4">
+              <p className="text-[10px] md:text-xs text-text-dim uppercase mb-1">ডিজেল বিক্রি</p>
+              <p className="text-lg md:text-xl font-bold text-white">{todayStats.diesel.toFixed(1)} L</p>
+            </CardContent>
+          </Card>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -532,12 +592,27 @@ export default function OperatorDashboard() {
                         <h3 className="text-xl font-bold text-white mb-1">{scannedVehicle.vehicle_no}</h3>
                         <p className="text-text-dim text-sm mb-4">মালিক: {scannedVehicle.full_name} • জ্বালানি: {scannedVehicle.fuel_type}</p>
                         
-                        <div className={`p-3 rounded-lg text-sm font-medium ${
-                          validationStatus === 'valid' ? 'bg-success/20 text-success' :
-                          validationStatus === 'blocked' ? 'bg-danger/20 text-danger' :
-                          'bg-yellow-500/20 text-yellow-200'
-                        }`}>
-                          {validationMessage}
+                        <div className="flex gap-2 mb-4">
+                          <div className={`p-4 rounded-xl text-sm font-medium flex-1 ${
+                            validationStatus === 'valid' ? 'bg-success/10 text-success border border-success/20' :
+                            validationStatus === 'blocked' ? 'bg-danger/10 text-danger border border-danger/20' :
+                            'bg-yellow-500/10 text-yellow-200 border border-yellow-500/20'
+                          }`}>
+                            {validationMessage}
+                          </div>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => {
+                              setScannedVehicle(null);
+                              setSearchVehicle('');
+                              setValidationStatus('idle');
+                            }}
+                            className="h-auto px-3 border border-white/10 hover:bg-white/5"
+                            title="নতুন অনুসন্ধান"
+                          >
+                            <XCircle className="w-5 h-5 text-text-dim" />
+                          </Button>
                         </div>
                       </div>
                     </div>
