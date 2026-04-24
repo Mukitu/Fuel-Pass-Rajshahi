@@ -249,6 +249,22 @@ export default function Register() {
               </div>
             )}
 
+            {/* Step Indicator */}
+            {activeTab === 'citizen' && (
+              <div className="flex justify-between mb-8 md:mb-10 px-2 md:px-4 max-w-md mx-auto">
+                {[1, 2, 3].map((s) => (
+                  <div key={s} className="flex flex-col items-center gap-2">
+                    <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center text-sm md:text-base font-bold transition-all ${step >= s ? 'bg-accent-cyan text-primary-blue' : 'bg-white/10 text-text-dim border border-white/10'}`}>
+                      {s}
+                    </div>
+                    <span className={`text-[10px] md:text-xs ${step >= s ? 'text-accent-cyan' : 'text-text-dim'}`}>
+                      {s === 1 ? 'ব্যক্তিগত' : s === 2 ? 'গাড়ি' : 'নিরাপত্তা'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <form onSubmit={handleRegister} className="space-y-6 max-w-md mx-auto">
               {activeTab === 'citizen' && step === 1 && (
                 <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
