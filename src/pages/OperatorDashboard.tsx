@@ -30,6 +30,7 @@ export default function OperatorDashboard() {
   const [liters, setLiters] = useState('');
   const [selectedFuelType, setSelectedFuelType] = useState('');
   const [txSuccess, setTxSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [prices, setPrices] = useState({
     petrol: operator?.petrol_price || 0,
@@ -371,22 +372,13 @@ export default function OperatorDashboard() {
     );
   }
 
-  const todayStats = todaysTransactions.reduce((acc, tx) => {
-    acc.total += tx.amount_bdt;
-    const type = tx.fuel_type?.toLowerCase() || '';
-    if (type.includes('petrol')) acc.petrol += tx.liters || 0;
-    else if (type.includes('octane')) acc.octane += tx.liters || 0;
-    else if (type.includes('diesel')) acc.diesel += tx.liters || 0;
-    return acc;
-  }, { total: 0, petrol: 0, octane: 0, diesel: 0 });
-
   return (
     <div className="min-h-screen p-3 md:p-8 relative overflow-hidden">
-      <div className="max-w-4xl mx-auto space-y-6 relative z-10">
+      <div className="max-w-3xl mx-auto space-y-6 relative z-10">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-white">SMARTRefill</h1>
-            <p className="text-text-dim text-sm">পাম্প: {operator.pump_name} • অপারেটর: {operator.full_name}</p>
+            <p className="text-text-dim text-sm">অপারেটর: {operator.full_name}</p>
           </div>
           <Button variant="outline" size="sm" onClick={() => { localStorage.removeItem('user'); navigate('/'); }} className="w-full md:w-auto">
             <LogOut className="w-4 h-4 mr-2" />
@@ -394,149 +386,175 @@ export default function OperatorDashboard() {
           </Button>
         </div>
 
-        {/* Stats Summary */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="bg-accent-cyan/5 border-accent-cyan/20">
-            <CardContent className="p-4">
-              <p className="text-[10px] md:text-xs text-text-dim uppercase mb-1">মোট বিক্রি (আজ)</p>
-              <p className="text-lg md:text-xl font-bold text-accent-cyan">৳ {todayStats.total}</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-white/5 border-white/10">
-            <CardContent className="p-4">
-              <p className="text-[10px] md:text-xs text-text-dim uppercase mb-1">পেট্রোল বিক্রি</p>
-              <p className="text-lg md:text-xl font-bold text-white">{todayStats.petrol.toFixed(1)} L</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-white/5 border-white/10">
-            <CardContent className="p-4">
-              <p className="text-[10px] md:text-xs text-text-dim uppercase mb-1">অকটেন বিক্রি</p>
-              <p className="text-lg md:text-xl font-bold text-white">{todayStats.octane.toFixed(1)} L</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-white/5 border-white/10">
-            <CardContent className="p-4">
-              <p className="text-[10px] md:text-xs text-text-dim uppercase mb-1">ডিজেল বিক্রি</p>
-              <p className="text-lg md:text-xl font-bold text-white">{todayStats.diesel.toFixed(1)} L</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <Card>
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center text-lg md:text-xl">
-                  <ScanLine className="w-5 h-5 mr-2 text-accent-cyan" />
-                  গাড়ি অনুসন্ধান ও ফুয়েল রিফিল
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3 mb-6">
-                  <Input 
-                    placeholder="গাড়ির রেজিস্ট্রেশন নম্বর (যেমন: ঢাকা মেট্রো-ক-১১-২২৩৩)" 
-                    value={searchVehicle}
-                    onChange={(e) => setSearchVehicle(e.target.value)}
-                    className="flex-1 uppercase h-12 text-lg font-mono tracking-wider"
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center text-lg md:text-xl">
+                <Droplet className="w-5 h-5 mr-2 text-accent-cyan" />
+                জ্বালানি মূল্য নির্ধারণ (Fuel Price Setup)
+              </CardTitle>
+              <CardDescription>প্রতি লিটার জ্বালানির দাম নির্ধারণ করুন</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                <div className="space-y-2">
+                  <Label>পেট্রোল (Petrol) / L</Label>
+                  <input 
+                    type="number" 
+                    value={prices.petrol} 
+                    onChange={(e) => setPrices({...prices, petrol: Number(e.target.value)})}
+                    placeholder="0"
+                    className="w-full h-10 px-3 bg-white/5 border border-white/10 rounded-md focus:border-accent-cyan outline-none transition-all"
                   />
-                  <div className="flex gap-2">
-                    <Button type="submit" disabled={isSearching} className="flex-1 sm:flex-none h-12 px-6">
-                      <Search className="w-4 h-4 mr-2" />
-                      অনুসন্ধান
-                    </Button>
-                    <Button type="button" variant="outline" onClick={() => setShowScanner(!showScanner)} className="h-12 w-12 p-0 border-accent-cyan/30 text-accent-cyan hover:bg-accent-cyan/10">
-                      <QrCode className="w-5 h-5" />
-                    </Button>
-                  </div>
-                </form>
+                </div>
+                <div className="space-y-2">
+                  <Label>অকটেন (Octane) / L</Label>
+                  <input 
+                    type="number" 
+                    value={prices.octane} 
+                    onChange={(e) => setPrices({...prices, octane: Number(e.target.value)})}
+                    placeholder="0"
+                    className="w-full h-10 px-3 bg-white/5 border border-white/10 rounded-md focus:border-accent-cyan outline-none transition-all"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>ডিজেল (Diesel) / L</Label>
+                  <input 
+                    type="number" 
+                    value={prices.diesel} 
+                    onChange={(e) => setPrices({...prices, diesel: Number(e.target.value)})}
+                    placeholder="0"
+                    className="w-full h-10 px-3 bg-white/5 border border-white/10 rounded-md focus:border-accent-cyan outline-none transition-all"
+                  />
+                </div>
+              </div>
+              <Button onClick={handlePriceUpdate} className="w-full">
+                মূল্য সংরক্ষণ করুন (Save Prices)
+              </Button>
+            </CardContent>
+          </Card>
 
-                <AnimatePresence>
-                  {validationStatus === 'not_found' && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: -10 }} 
-                      animate={{ opacity: 1, y: 0 }} 
-                      exit={{ opacity: 0, y: -10 }}
-                      className="p-4 rounded-xl bg-danger/10 border border-danger/30 text-danger text-sm flex items-center mb-4"
-                    >
-                      <XCircle className="w-5 h-5 mr-3" />
-                      {validationMessage}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+          <Card className="md:col-span-2">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center text-lg md:text-xl">
+                <ScanLine className="w-5 h-5 mr-2 text-accent-cyan" />
+                গাড়ি অনুসন্ধান (Vehicle Search)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3 mb-4">
+                <Input 
+                  placeholder="গাড়ির নম্বর লিখুন" 
+                  value={searchVehicle}
+                  onChange={(e) => setSearchVehicle(e.target.value)}
+                  className="flex-1 uppercase h-12"
+                />
+                <div className="flex gap-2">
+                  <Button type="submit" disabled={isSearching} className="flex-1 sm:flex-none h-12">
+                    <Search className="w-4 h-4 mr-2" />
+                    খুঁজুন
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => setShowScanner(!showScanner)} className="h-12 w-12 p-0">
+                    <QrCode className="w-5 h-5" />
+                  </Button>
+                </div>
+              </form>
 
-                <AnimatePresence>
-                  {showScanner && (
-                    <motion.div 
-                      initial={{ opacity: 0, height: 0 }} 
-                      animate={{ opacity: 1, height: 'auto' }} 
-                      exit={{ opacity: 0, height: 0 }}
-                      className="mb-6 overflow-hidden rounded-xl border border-glass-border bg-black/40"
-                    >
-                      <Scanner 
-                        onScan={(result) => {
-                          if (result && result.length > 0) {
-                            handleScan(result[0].rawValue);
-                          }
-                        }}
-                        components={{ finder: false }}
-                      />
-                      <div className="p-3 bg-black/60 text-center text-xs text-text-dim flex items-center justify-center gap-2">
-                        <ScanLine className="w-3 h-3 animate-pulse" />
-                        কিউআর কোডটি ক্যামেরার সামনে ধরুন
-                        <Button variant="ghost" size="sm" onClick={() => setShowScanner(false)} className="h-6 px-2 text-xs">বন্ধ করুন</Button>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+              <AnimatePresence>
+                {validationStatus === 'not_found' && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10 }} 
+                    animate={{ opacity: 1, y: 0 }} 
+                    exit={{ opacity: 0, y: -10 }}
+                    className="p-3 rounded-lg bg-danger/10 border border-danger/30 text-danger text-sm flex items-center"
+                  >
+                    <XCircle className="w-4 h-4 mr-2" />
+                    {validationMessage}
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-                <AnimatePresence mode="wait">
-                  {isSearching ? (
-                    <div className="py-8">
-                      <Shimmer className="h-48 w-full" />
+              <AnimatePresence>
+                {showScanner && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }} 
+                    animate={{ opacity: 1, height: 'auto' }} 
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mt-4 overflow-hidden rounded-xl border border-glass-border"
+                  >
+                    <Scanner 
+                      onScan={(result) => {
+                        if (result && result.length > 0) {
+                          handleScan(result[0].rawValue);
+                        }
+                      }}
+                      components={{ finder: false }}
+                    />
+                    <div className="p-2 bg-black/50 text-center text-xs text-text-dim">
+                      QR কোডটি ক্যামেরার সামনে ধরুন
                     </div>
-                  ) : scannedVehicle ? (
-                    <motion.div 
-                      initial={{ opacity: 0, y: 20 }} 
-                      animate={{ opacity: 1, y: 0 }}
-                      className="space-y-6"
-                    >
-                      <div className={`p-6 rounded-2xl border transition-all duration-500 ${
-                        validationStatus === 'valid' ? 'bg-success/5 border-success/30 shadow-[0_0_20px_rgba(0,230,118,0.05)]' :
-                        validationStatus === 'blocked' ? 'bg-danger/5 border-danger/30 shadow-[0_0_20px_rgba(255,77,77,0.05)]' :
-                        'bg-yellow-500/5 border-yellow-500/30'
-                      }`}>
-                        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
-                          <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 ${
-                            validationStatus === 'valid' ? 'bg-success/20 text-success' :
-                            validationStatus === 'blocked' ? 'bg-danger/20 text-danger' :
-                            'bg-yellow-500/20 text-yellow-500'
-                          }`}>
-                            {validationStatus === 'valid' ? <CheckCircle2 className="w-10 h-10" /> :
-                             validationStatus === 'blocked' ? <XCircle className="w-10 h-10" /> :
-                             <AlertTriangle className="w-10 h-10" />}
-                          </div>
-                          
-                          <div className="flex-1">
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-1">
-                              <h3 className="text-2xl font-bold text-white font-mono">{scannedVehicle.vehicle_no}</h3>
-                              <span className="px-2 py-0.5 rounded-full bg-white/10 text-[10px] text-text-dim w-fit mx-auto sm:mx-0">{scannedVehicle.vehicle_type}</span>
-                            </div>
-                            <p className="text-text-dim text-sm mb-4">মালিক: {scannedVehicle.full_name} • মোবাইল: {scannedVehicle.mobile}</p>
-                            
-                            <div className={`p-4 rounded-xl text-sm font-medium ${
-                              validationStatus === 'valid' ? 'bg-success/10 text-success border border-success/20' :
-                              validationStatus === 'blocked' ? 'bg-danger/10 text-danger border border-danger/20' :
-                              'bg-yellow-500/10 text-yellow-200 border border-yellow-500/20'
-                            }`}>
-                              {validationMessage}
-                            </div>
-                          </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </CardContent>
+          </Card>
+
+          <AnimatePresence mode="wait">
+            {isSearching ? (
+              <motion.div 
+                key="loading"
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                exit={{ opacity: 0 }}
+                className="md:col-span-2"
+              >
+                <Shimmer className="h-48 w-full" />
+              </motion.div>
+            ) : scannedVehicle && (
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }} 
+                animate={{ opacity: 1, height: 'auto' }} 
+                exit={{ opacity: 0, height: 0 }}
+                className="md:col-span-2 space-y-6"
+              >
+                <Card className={
+                  validationStatus === 'valid' ? 'border-success/50 shadow-[0_0_15px_rgba(0,230,118,0.2)]' :
+                  validationStatus === 'blocked' ? 'border-danger/50 shadow-[0_0_15px_rgba(255,77,77,0.2)]' :
+                  'border-yellow-500/50 shadow-[0_0_15px_rgba(234,179,8,0.2)]'
+                }>
+                  <CardContent className="p-6">
+                    <div className="flex items-start gap-4">
+                      {validationStatus === 'valid' && <CheckCircle2 className="w-8 h-8 text-success shrink-0" />}
+                      {validationStatus === 'blocked' && <XCircle className="w-8 h-8 text-danger shrink-0" />}
+                      {validationStatus === 'gap_error' && <AlertTriangle className="w-8 h-8 text-yellow-400 shrink-0" />}
+                      
+                      <div className="flex-1">
+                        <h3 className="text-xl font-bold text-white mb-1">{scannedVehicle.vehicle_no}</h3>
+                        <p className="text-text-dim text-sm mb-4">মালিক: {scannedVehicle.full_name} • জ্বালানি: {scannedVehicle.fuel_type}</p>
+                        
+                        <div className={`p-3 rounded-lg text-sm font-medium ${
+                          validationStatus === 'valid' ? 'bg-success/20 text-success' :
+                          validationStatus === 'blocked' ? 'bg-danger/20 text-danger' :
+                          'bg-yellow-500/20 text-yellow-200'
+                        }`}>
+                          {validationMessage}
                         </div>
                       </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-                      {validationStatus === 'valid' && !txSuccess && (
-                        <div className="space-y-4">
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {validationStatus === 'valid' && !txSuccess && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>জ্বালানি প্রদান (Refill)</CardTitle>
+                      <CardDescription>সর্বোচ্চ সীমা: ৳ {settings.quotas[scannedVehicle.vehicle_type || '']?.bdt_limit || 0}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <form onSubmit={handleTransaction} className="space-y-4">
+                        <div className="space-y-2">
+                          <Label>জ্বালানির ধরন (Fuel Type)</Label>
+                          <div className="flex gap-2">
                             {['Petrol', 'Octane', 'Diesel'].map((type) => (
                               <button
                                 key={type}
@@ -549,213 +567,111 @@ export default function OperatorDashboard() {
                                     if (price > 0) setLiters((Number(amount) / price).toFixed(2));
                                   }
                                 }}
-                                className={`flex flex-col items-center justify-center py-4 px-3 rounded-2xl border transition-all duration-300 ${
+                                className={`flex-1 py-2 px-3 rounded-lg border transition-all ${
                                   selectedFuelType === type 
-                                    ? 'bg-accent-cyan/10 border-accent-cyan text-accent-cyan shadow-[0_0_15px_rgba(100,255,218,0.1)]' 
-                                    : 'bg-white/5 border-white/10 text-text-dim hover:bg-white/10'
+                                    ? 'bg-accent-cyan/20 border-accent-cyan text-accent-cyan shadow-[0_0_10px_rgba(100,255,218,0.2)]' 
+                                    : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
                                 }`}
                               >
-                                <Droplet className={`w-6 h-6 mb-2 ${selectedFuelType === type ? 'text-accent-cyan' : 'text-text-dim'}`} />
-                                <span className="font-bold text-sm">{type === 'Petrol' ? 'পেট্রোল' : type === 'Octane' ? 'অকটেন' : 'ডিজেল'}</span>
-                                <span className="text-[10px] mt-1">৳ {getPriceForType(type)}/L</span>
+                                {type === 'Petrol' ? 'পেট্রোল' : type === 'Octane' ? 'অকটেন' : 'ডিজেল'}
                               </button>
                             ))}
                           </div>
-
-                          <Card className="border-accent-cyan/10 bg-accent-cyan/5">
-                            <CardContent className="p-6">
-                              <form onSubmit={handleTransaction} className="space-y-6">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                  <div className="space-y-2">
-                                    <Label className="text-text-dim">টাকার পরিমাণ (BDT)</Label>
-                                    <div className="relative">
-                                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-dim">৳</span>
-                                      <Input 
-                                        type="number" 
-                                        placeholder="0" 
-                                        value={amount}
-                                        onChange={(e) => calculateFromAmount(e.target.value)}
-                                        max={settings.quotas[scannedVehicle.vehicle_type || '']?.bdt_limit || 0}
-                                        className="pl-8 h-12 text-xl font-bold bg-white/5"
-                                        required
-                                      />
-                                    </div>
-                                    <p className="text-[10px] text-text-dim">সর্বোচ্চ সীমা: ৳ {settings.quotas[scannedVehicle.vehicle_type || '']?.bdt_limit || 0}</p>
-                                  </div>
-                                  <div className="space-y-2">
-                                    <Label className="text-text-dim">পরিমাণ (Liters)</Label>
-                                    <div className="relative">
-                                      <Input 
-                                        type="number" 
-                                        step="0.01"
-                                        placeholder="0.00" 
-                                        value={liters}
-                                        onChange={(e) => calculateFromLiters(e.target.value)}
-                                        className="h-12 text-xl font-bold bg-white/5"
-                                        required
-                                      />
-                                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-text-dim">L</span>
-                                    </div>
-                                  </div>
-                                </div>
-                                
-                                <Button type="submit" className="w-full h-14 text-lg font-bold shadow-lg shadow-accent-cyan/10" size="lg">
-                                  রিফিল নিশ্চিত করুন
-                                </Button>
-                              </form>
-                            </CardContent>
-                          </Card>
                         </div>
-                      )}
 
-                      {txSuccess && (
-                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
-                          <Card className="bg-success/20 border-success/40 py-8 text-center">
-                            <CardContent>
-                              <div className="w-20 h-20 bg-success/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-success/30">
-                                <CheckCircle2 className="w-12 h-12 text-success animate-bounce" />
-                              </div>
-                              <h3 className="text-2xl font-bold text-white mb-2">লেনদেন সফল!</h3>
-                              <p className="text-success font-medium">গাড়ি: {scannedVehicle.vehicle_no}</p>
-                              <div className="mt-4 flex justify-center gap-6 text-sm">
-                                <div>
-                                  <p className="text-text-dim uppercase text-[10px]">টাকা</p>
-                                  <p className="text-white font-bold text-lg">৳ {amount}</p>
-                                </div>
-                                <div className="w-px h-10 bg-white/10" />
-                                <div>
-                                  <p className="text-text-dim uppercase text-[10px]">লিটার</p>
-                                  <p className="text-white font-bold text-lg">{liters} L</p>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        </motion.div>
-                      )}
-                    </motion.div>
-                  ) : null}
-                </AnimatePresence>
-              </CardContent>
-            </Card>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>টাকার পরিমাণ (Amount in BDT)</Label>
+                            <Input 
+                              type="number" 
+                              placeholder="0" 
+                              value={amount}
+                              onChange={(e) => calculateFromAmount(e.target.value)}
+                              max={settings.quotas[scannedVehicle.vehicle_type || '']?.bdt_limit || 0}
+                              required
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>লিটার (Quantity in Liters)</Label>
+                            <Input 
+                              type="number" 
+                              step="0.01"
+                              placeholder="0.00" 
+                              value={liters}
+                              onChange={(e) => calculateFromLiters(e.target.value)}
+                              required
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="p-3 bg-white/5 rounded-lg border border-white/10">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-text-dim">বর্তমান মূল্য:</span>
+                            <span className="text-white font-medium">৳ {getPriceForType(selectedFuelType)} / L</span>
+                          </div>
+                        </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">আজকের লেনদেনের তালিকা</CardTitle>
-                <CardDescription>আপনার পাম্পের সর্বশেষ ১০টি লেনদেন</CardDescription>
-              </CardHeader>
-              <CardContent className="p-0">
+                        <Button type="submit" className="w-full" size="lg">
+                          নিশ্চিত করুন (Confirm Transaction)
+                        </Button>
+                      </form>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {txSuccess && (
+                  <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
+                    <Card className="bg-success/20 border-success/50">
+                      <CardContent className="p-8 text-center">
+                        <CheckCircle2 className="w-16 h-16 text-success mx-auto mb-4" />
+                        <h3 className="text-2xl font-bold text-white mb-2">লেনদেন সফল হয়েছে!</h3>
+                        <p className="text-success">৳ {amount} এর জ্বালানি প্রদান করা হয়েছে।</p>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <Card className="md:col-span-2 mt-6">
+            <CardHeader>
+              <CardTitle>আজকের লেনদেন (Today's Transactions)</CardTitle>
+              <CardDescription>মোট লেনদেন: {todaysTransactions.length} টি</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {todaysTransactions.length === 0 ? (
+                <p className="text-text-dim text-center py-4">আজ কোনো লেনদেন হয়নি।</p>
+              ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-white/5 text-text-dim text-[10px] uppercase tracking-wider">
+                  <table className="w-full text-sm text-left">
+                    <thead className="text-xs text-text-dim uppercase bg-white/5">
                       <tr>
-                        <th className="px-6 py-4 text-left font-medium">সময়</th>
-                        <th className="px-6 py-4 text-left font-medium">গাড়ির নম্বর</th>
-                        <th className="px-6 py-4 text-left font-medium">জ্বালানি</th>
-                        <th className="px-6 py-4 text-right font-medium">টাকা</th>
-                        <th className="px-6 py-4 text-right font-medium">লিটার</th>
+                        <th className="px-4 py-3 rounded-tl-lg">সময়</th>
+                        <th className="px-4 py-3">গাড়ির নম্বর</th>
+                        <th className="px-4 py-3">জ্বালানি</th>
+                        <th className="px-4 py-3">পরিমাণ (BDT)</th>
+                        <th className="px-4 py-3 rounded-tr-lg text-right">লিটার (L)</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/5">
-                      {todaysTransactions.slice(0, 10).map((tx) => (
-                        <tr key={tx.id} className="hover:bg-white/5 transition-colors">
-                          <td className="px-6 py-4 text-text-dim">{new Date(tx.created_at).toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' })}</td>
-                          <td className="px-6 py-4 font-mono font-bold text-white">{tx.vehicle_no}</td>
-                          <td className="px-6 py-4">
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-accent-cyan/10 text-accent-cyan border border-accent-cyan/20">
-                              {tx.fuel_type}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-right font-bold text-success">৳ {tx.amount_bdt}</td>
-                          <td className="px-6 py-4 text-right text-text-dim">{tx.liters} L</td>
-                        </tr>
-                      ))}
-                      {todaysTransactions.length === 0 && (
-                        <tr>
-                          <td colSpan={5} className="px-6 py-10 text-center text-text-dim italic">
-                            আজ কোনো লেনদেন হয়নি।
-                          </td>
-                        </tr>
-                      )}
+                    <tbody>
+                      {todaysTransactions.map((tx) => {
+                        return (
+                          <tr key={tx.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                            <td className="px-4 py-3">{new Date(tx.created_at).toLocaleTimeString('bn-BD')}</td>
+                            <td className="px-4 py-3 font-medium text-white">{tx.vehicle_no}</td>
+                            <td className="px-4 py-3 text-accent-cyan">{tx.fuel_type || 'N/A'}</td>
+                            <td className="px-4 py-3 font-bold text-success">৳ {tx.amount_bdt}</td>
+                            <td className="px-4 py-3 text-right text-white">{tx.liters || 'N/A'}</td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="space-y-6">
-            <Card className="border-accent-cyan/30 bg-accent-cyan/5">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center">
-                  <Droplet className="w-5 h-5 mr-2 text-accent-cyan" />
-                  জ্বালানি মূল্য
-                </CardTitle>
-                <CardDescription>প্রতি লিটারের বর্তমান বাজার মূল্য</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-text-dim">পেট্রোল (Petrol)</Label>
-                    <div className="flex gap-2">
-                      <Input 
-                        type="number" 
-                        value={prices.petrol} 
-                        onChange={(e) => setPrices({...prices, petrol: Number(e.target.value)})}
-                        className="bg-white/5"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-text-dim">অকটেন (Octane)</Label>
-                    <div className="flex gap-2">
-                      <Input 
-                        type="number" 
-                        value={prices.octane} 
-                        onChange={(e) => setPrices({...prices, octane: Number(e.target.value)})}
-                        className="bg-white/5"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-text-dim">ডিজেল (Diesel)</Label>
-                    <div className="flex gap-2">
-                      <Input 
-                        type="number" 
-                        value={prices.diesel} 
-                        onChange={(e) => setPrices({...prices, diesel: Number(e.target.value)})}
-                        className="bg-white/5"
-                      />
-                    </div>
-                  </div>
-                  <Button onClick={handlePriceUpdate} className="w-full mt-2" variant="outline">
-                    মূল্য আপডেট করুন
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">পাম্প তথ্য</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between text-sm py-2 border-b border-white/5">
-                  <span className="text-text-dim">পাম্পের নাম</span>
-                  <span className="text-white font-medium">{operator.pump_name}</span>
-                </div>
-                <div className="flex justify-between text-sm py-2 border-b border-white/5">
-                  <span className="text-text-dim">অবস্থান</span>
-                  <span className="text-white font-medium">{operator.location}</span>
-                </div>
-                <div className="flex justify-between text-sm py-2">
-                  <span className="text-text-dim">স্ট্যাটাস</span>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] ${operator.is_open ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'}`}>
-                    {operator.is_open ? 'Open' : 'Closed'}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
